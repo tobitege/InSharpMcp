@@ -12,7 +12,9 @@ Result:
 
 - `InSharpMcp.Tests`: 47 passed
 - `InSharpMcp.AdapterContractTests`: 9 passed
-- Total: 56 passed
+- `InSharpMcp.Tests`: 55 passed after Phase 10 remediation
+- `InSharpMcp.AdapterContractTests`: 9 passed after Phase 10 remediation
+- Total: 64 passed
 - Uno adapter builds for `net9.0-windows10.0.19041` and `net9.0-desktop`
 
 The .NET SDK prints `NETSDK1057` because the machine's default SDK is an 11 preview. This is informational; the projects target the plan-specified TFMs.
@@ -20,11 +22,12 @@ The .NET SDK prints `NETSDK1057` because the machine's default SDK is an 11 prev
 ## Implemented Scope
 
 - Central package management and .NET solution under `mcp/server`.
-- `InSharpMcp.Contracts` with tool result models, limits, UI adapter contracts, screenshots, selectors, event logs, traces, assertions, and framework-neutral UI node models.
-- `InSharpMcp` broker/core library with registry, target selection, startup enablement, limit parsing/clamping, authorization, bounded concurrency, UI queueing, MCP stdio/HTTP host wrappers, event log, trace store, selectors, waits, assertions, and `ism_` tools.
-- `InSharpMcp.Adapters.Uno` with dispatcher, app provider, bounded visual-tree inspector, metadata/DataContext support, Windows screenshot capture, and explicit unsupported results for unvalidated input/automation paths.
+- `InSharpMcp.Contracts` with tool result models, limits, UI adapter contracts, screenshots, selectors, event logs, traces, assertions, framework-neutral UI node models, and shared node-visit budget tracking.
+- `InSharpMcp` broker/core library with registry, target selection, app-instance client routing, startup enablement, limit parsing/clamping, transport-aware authorization, bounded concurrency, UI queueing, MCP stdio/HTTP host wrappers, event log, trace store, selectors, waits, assertions, and `ism_` tools.
+- `InSharpMcp.Adapters.Uno` with dispatcher, app provider, globally bounded visual-tree inspector, metadata/DataContext support, Windows screenshot capture, and explicit unsupported results for unvalidated input/automation paths.
 - Shared adapter contract tests and in-memory fake adapter fixture.
-- Focused unit tests for Phase 1 through Phase 7 behavior.
+- Focused unit tests for Phase 1 through Phase 10 behavior.
+- Phase 10 remediation fixed routed tool dispatch, selected-instance stale/ambiguous errors, HTTP bearer/header/query auth extraction, protected-tool auth ordering, trace recording from actual tool execution, `ism_close` queueing, and Uno visual-tree node/text limit enforcement.
 
 ## Validation-Gated Scope
 
@@ -43,3 +46,8 @@ Avalonia and WinForms adapters were not added because no validating host/demo pr
 - `77af81e` Add protected interaction tools
 - `df6c05d` Add tracing and assertion tools
 - `ac7d5a3` Document additional adapter validation gates
+- `0dad42a` Complete implementation verification summary
+- `a2b563c` Reopen plan for review remediation
+- `892d9ef` Route tools through selected app clients
+- `78278a6` Enforce shared visual tree node budgets
+- `5efc456` Authorize protected tools before target selection
