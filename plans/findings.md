@@ -25,6 +25,7 @@
 - The .NET 11 `dotnet new sln` default is `.slnx`; the solution was explicitly created as standard `.sln`.
 - Restored MCP SDK metadata documents `AddMcpServer`, `WithStdioServerTransport`, `WithHttpTransport`, `WithTools<T>`, and `MapMcp`.
 - `McpServerToolAttribute.Name` is nullable in the SDK surface, so tool catalog discovery must provide a deterministic method-name fallback.
+- Shared adapter contract harness now uses framework-neutral `UiElementNode`, `UiTreeSnapshot`, and `ElementMetadata` records.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -36,6 +37,7 @@
 | Use central package management | The repository is greenfield and central package management keeps project files versionless as requested by `plans/PLAN.md`. |
 | Keep broker host classes as thin startup wrappers around SDK hosting APIs | Transport behavior should stay in the official SDK while InSharpMcp owns policy, registry, and adapter routing services. |
 | Use reflection over `InSharpMcpTools` for the initial tool catalog test | It verifies SDK attributes and `ism_` tool names without starting a long-lived MCP server process. |
+| Put fake adapters in `InSharpMcp.AdapterContractTests` first | The harness validates contract expectations without adding test-only helpers to production packages. |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -43,6 +45,7 @@
 | First test command used `--no-restore` after adding new package references, causing missing package namespaces. | Reran `dotnet test` with restore enabled. |
 | Initial HTTP host wrapper used `WebApplication` async overloads unavailable in this target shape. | Switched to configured URLs plus cancellation-triggered `StopAsync()` and `RunAsync()`. |
 | Tool catalog initially assumed SDK tool attribute names are non-null. | Added method-name fallback for nullable `Name`. |
+| xUnit template restore failed under central package management for the new adapter contract test project. | Removed generated package versions and restored through the solution. |
 
 ## Resources
 - `plans/PLAN.md`
@@ -51,3 +54,4 @@
 
 ## Verification Notes
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 25 tests after completing Phase 1 verification coverage.
+- `dotnet test mcp/server/InSharpMcp.sln` passed with 34 tests after adding Phase 2 adapter contract harness.

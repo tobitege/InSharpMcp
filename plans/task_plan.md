@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 1 - Safe Foundation
+Phase 3 - Uno Adapter MVP
 
 ## Phases
 
@@ -30,11 +30,11 @@ Phase 1 - Safe Foundation
 - **Status:** complete
 
 ### Phase 2: Adapter Contract Harness
-- [ ] Create shared adapter contract tests
-- [ ] Define framework-neutral expectations for lookup, tree output, screenshots, and input
-- [ ] Add fake/in-memory adapters for core MCP tests
-- [ ] Commit tested harness work
-- **Status:** in_progress
+- [x] Create shared adapter contract tests
+- [x] Define framework-neutral expectations for lookup, tree output, screenshots, and input
+- [x] Add fake/in-memory adapters for core MCP tests
+- [x] Commit tested harness work
+- **Status:** complete
 
 ### Phase 3: Uno Adapter MVP
 - [ ] Create `InSharpMcp.Adapters.Uno`
@@ -43,7 +43,7 @@ Phase 1 - Safe Foundation
 - [ ] Add visual tree and metadata tools
 - [ ] Add tests for limits, truncation, unsupported behavior, and queueing
 - [ ] Commit tested Uno MVP work
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 4: Screenshot and DataContext Metadata
 - [ ] Implement supported Windows screenshot capture and MCP image-content shape
@@ -114,6 +114,7 @@ Phase 1 - Safe Foundation
 |-------|---------|------------|
 | `dotnet test --no-restore` failed after adding package references | 1 | Reran `dotnet test` with restore enabled; build and tests passed. |
 | HTTP host wrapper used unavailable `RunAsync(CancellationToken)`/`WaitForShutdownAsync` shapes for `WebApplication` | 1 | Registered cancellation to call `StopAsync()` and awaited `RunAsync()` after configuring URLs. |
+| xUnit template restore failed because versioned package references conflicted with central package management | 1 | Removed package versions from the new adapter contract test project before restore. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.
