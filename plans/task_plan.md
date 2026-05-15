@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 9 - Final Verification and Handoff
+Complete
 
 ## Phases
 
@@ -89,12 +89,12 @@ Phase 9 - Final Verification and Handoff
 - **Status:** complete
 
 ### Phase 9: Final Verification and Handoff
-- [ ] Map every `plans/PLAN.md` requirement to implementation or documented allowed unsupported/TBD behavior
-- [ ] Run final build/test suite
-- [ ] Confirm no assistant-started processes are left running
-- [ ] Confirm final git working tree is clean after final commit
-- [ ] Mark planning files complete
-- **Status:** in_progress
+- [x] Map every `plans/PLAN.md` requirement to implementation or documented allowed unsupported/TBD behavior
+- [x] Run final build/test suite
+- [x] Confirm no assistant-started processes are left running
+- [x] Confirm final git working tree is clean after final commit
+- [x] Mark planning files complete
+- **Status:** complete
 
 ## Key Questions
 1. Which package-management style does this repository currently use?

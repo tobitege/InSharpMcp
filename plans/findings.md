@@ -34,6 +34,7 @@
 - Protected interaction tools now authorize through `McpAuthorization`, validate input before dispatch, run through the UI queue where applicable, and record interaction event-log entries.
 - Trace start/stop uses a bounded in-memory trace store and assertion helpers return structured pass/fail `AssertionResult` data without throwing for normal failures.
 - Phase 8 found no Avalonia or WinForms validation host in the repository. Per `plans/PLAN.md`, those adapters are not added until a validating host is available.
+- Final verification passed with 56 tests. `plans/IMPLEMENTATION_SUMMARY.md` maps the implemented scope and validation-gated scope.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -78,3 +79,4 @@
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 48 tests after adding selectors, wait, accessibility, and event-log tooling.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 53 tests after adding interaction tools.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 56 tests after adding trace start/stop and assertion helpers.
+- Final `dotnet test mcp/server/InSharpMcp.sln` passed with 56 tests.
