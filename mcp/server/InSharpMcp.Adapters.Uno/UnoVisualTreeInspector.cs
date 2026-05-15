@@ -22,10 +22,10 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
             token =>
             {
                 token.ThrowIfCancellationRequested();
-                var remainingNodes = limits.MaxNodes;
+                var budget = new NodeVisitBudget(limits.MaxNodes);
                 var truncated = false;
-                var rootNode = CopyBounded(_root, "0", currentDepth: 1, limits, ref remainingNodes, ref truncated);
-                var snapshot = new UiTreeSnapshot(rootNode!, limits.MaxNodes - remainingNodes, truncated);
+                var rootNode = CopyBounded(_root, "0", currentDepth: 1, limits, budget, ref truncated);
+                var snapshot = new UiTreeSnapshot(rootNode!, budget.VisitedNodes, truncated);
                 return ToolResult.Ok("Visual tree snapshot returned.", snapshot);
             },
             cancellationToken);
@@ -38,7 +38,8 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
             token =>
             {
                 token.ThrowIfCancellationRequested();
-                var match = Find(_root, elementIdentifier, "0", limits.MaxNodes, token);
+                var budget = new NodeVisitBudget(limits.MaxNodes);
+                var match = Find(_root, elementIdentifier, "0", budget, token);
                 if (match is null)
                 {
                     return ToolResult.Fail("Element was not found.", "not_found");
@@ -56,7 +57,8 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
             token =>
             {
                 token.ThrowIfCancellationRequested();
-                var match = Find(_root, elementIdentifier, "0", limits.MaxNodes, token);
+                var budget = new NodeVisitBudget(limits.MaxNodes);
+                var match = Find(_root, elementIdentifier, "0", budget, token);
                 if (match is null)
                 {
                     return ToolResult.Fail("Element was not found.", "not_found");
@@ -78,16 +80,15 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
         string identifier,
         int currentDepth,
         ToolLimits limits,
-        ref int remainingNodes,
+        NodeVisitBudget budget,
         ref bool truncated)
     {
-        if (remainingNodes <= 0)
+        if (!budget.TryVisit())
         {
             truncated = true;
             return null;
         }
 
-        remainingNodes--;
         var childCount = VisualTreeHelper.GetChildrenCount(element);
         if (currentDepth >= limits.MaxDepth || childCount == 0)
         {
@@ -96,7 +97,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
                 truncated = true;
             }
 
-            return CreateNode(element, identifier, Array.Empty<UiElementNode>());
+            return CreateNode(element, identifier, limits, Array.Empty<UiElementNode>());
         }
 
         var children = new List<UiElementNode>();
@@ -108,7 +109,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
                 $"{identifier}/{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
                 currentDepth + 1,
                 limits,
-                ref remainingNodes,
+                budget,
                 ref truncated);
             if (copied is not null)
             {
@@ -116,18 +117,18 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
             }
         }
 
-        return CreateNode(element, identifier, children);
+        return CreateNode(element, identifier, limits, children);
     }
 
     private static (DependencyObject Element, string Identifier)? Find(
         DependencyObject element,
         string elementIdentifier,
         string currentIdentifier,
-        int remainingNodes,
+        NodeVisitBudget budget,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (remainingNodes <= 0)
+        if (!budget.TryVisit())
         {
             return null;
         }
@@ -145,7 +146,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
                 VisualTreeHelper.GetChild(element, index),
                 elementIdentifier,
                 childIdentifier,
-                remainingNodes - 1,
+                budget,
                 cancellationToken);
             if (found is not null)
             {
@@ -159,9 +160,10 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
     private static UiElementNode CreateNode(
         DependencyObject element,
         string identifier,
+        ToolLimits limits,
         IReadOnlyList<UiElementNode> children)
     {
-        var metadata = CreateMetadata(element, identifier, new ToolLimits());
+        var metadata = CreateMetadata(element, identifier, limits);
         return new UiElementNode(
             metadata.ElementIdentifier,
             metadata.Type,

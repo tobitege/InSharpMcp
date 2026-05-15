@@ -14,6 +14,8 @@
   - Moved trace/event recording around actual selected tool execution.
   - Routed `ism_close` through the selected app client UI queue path.
   - Added regression tests for ambiguous target rejection, stale selected instances, selected-instance dispatch, HTTP bearer auth, close queueing, and trace capture.
+  - Added shared `NodeVisitBudget` and updated Uno visual-tree traversal to consume one global node budget across sibling branches.
+  - Updated Uno snapshot node creation to honor the caller's text limit.
 - Files created/modified:
   - `plans/task_plan.md`
   - `plans/findings.md`
@@ -23,6 +25,9 @@
   - `mcp/server/InSharpMcp/Tools/InSharpMcpTools.cs`
   - `mcp/server/tests/InSharpMcp.Tests/RoutedToolRegressionTests.cs`
   - `mcp/server/tests/InSharpMcp.Tests/ToolRoutingFixture.cs`
+  - `mcp/server/InSharpMcp.Contracts/NodeVisitBudget.cs`
+  - `mcp/server/InSharpMcp.Adapters.Uno/UnoVisualTreeInspector.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/NodeVisitBudgetTests.cs`
 
 ### Phase 0: Setup and Orientation
 - **Status:** complete
@@ -86,6 +91,7 @@
 | Phase 7 tracing/assertions | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 56 tests passed | Pass |
 | Final verification | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 56 tests passed | Pass |
 | Phase 10 routed tool/auth slice | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 62 tests passed | Pass |
+| Phase 10 Uno bounds slice | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 63 tests passed | Pass |
 
 ### Phase 2: Adapter Contract Harness
 - **Status:** complete

@@ -39,6 +39,7 @@
 - Tool entrypoints now route through `AppInstanceRouter` and `IAppInstanceClient`, which maps selected registry descriptors to executable app operations and returns `ambiguous_target` or `stale_instance` before dispatch.
 - Protected tools now use `McpRequestAuthorizationResolver`, which derives HTTP vs stdio context and extracts bearer/header/query tokens for HTTP requests.
 - Trace and event recording now happens around actual selected tool execution; `ism_start_trace`/`ism_stop_trace` are target-scoped.
+- Uno visual-tree traversal now uses a shared `NodeVisitBudget` so node limits are consumed globally across sibling branches, and snapshot node metadata uses the caller's text limit instead of default limits.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -87,3 +88,4 @@
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 56 tests after adding trace start/stop and assertion helpers.
 - Final `dotnet test mcp/server/InSharpMcp.sln` passed with 56 tests.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 62 tests after routed tool dispatch, transport-aware auth, trace recording, and close queue regression coverage.
+- `dotnet test mcp/server/InSharpMcp.sln` passed with 63 tests after fixing Uno traversal/text-limit handling and adding `NodeVisitBudget` coverage.

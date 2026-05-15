@@ -102,8 +102,8 @@ Remediation Phase 10: Review-critical gaps
 - [x] Add an app-instance client/connection layer so selected registry instances map to executable adapter operations
 - [x] Record trace entries from actual tool execution instead of requiring manual trace-store writes
 - [x] Ensure `ism_close` runs through the selected app UI operation path
-- [ ] Fix Uno visual-tree limit enforcement for lookup and snapshot text caps
-- [ ] Add tests proving routing, ambiguity/stale errors, HTTP/stdio auth behavior, trace recording, close queueing, and Uno bounds
+- [x] Fix Uno visual-tree limit enforcement for lookup and snapshot text caps
+- [x] Add tests proving routing, ambiguity/stale errors, HTTP/stdio auth behavior, trace recording, close queueing, and Uno bounds
 - [ ] Run full verification and commit coherent remediation slices
 - **Status:** in_progress
 
