@@ -50,7 +50,7 @@ This repository currently contains the core broker, shared contracts, Uno, Avalo
 
 The project is source-ready but not published as NuGet packages from this repository. Use project references while developing against it.
 
-The verified implementation includes the `InSharpMcp` core, `InSharpMcp.Contracts`, `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, and `InSharpMcp.Adapters.WinForms`. The repository currently pins Uno Platform through `Uno.Sdk/6.5.33`. It pins Avalonia to `11.3.9`; the Avalonia adapter has also been compile-checked against Avalonia `12.0.3`, so the current implementation does not require separate v11 and v12 adapter source versions.
+The verified implementation includes the callable `InSharpMcp.Broker` executable, the reusable `InSharpMcp.Core` library, `InSharpMcp.Contracts`, `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, and `InSharpMcp.Adapters.WinForms`. The repository currently pins Uno Platform through `Uno.Sdk/6.5.33`. It pins Avalonia to `11.3.9`; the Avalonia adapter has also been compile-checked against Avalonia `12.0.3`, so the current implementation does not require separate v11 and v12 adapter source versions.
 
 Pointer, keyboard, text input, and default actions are implemented where the adapters have validated public platform paths. Remaining `unsupported` results are specific backend or element-shape limits.
 
@@ -63,7 +63,8 @@ The server code lives under `mcp/server`.
 | Path | Purpose |
 |------|---------|
 | `mcp/server/InSharpMcp.Contracts` | Shared result models, limit models, selectors, screenshots, traces, assertions, and adapter interfaces. |
-| `mcp/server/InSharpMcp` | MCP broker/core library, routing, registry, security, limits, event log, trace store, selectors, assertions, and `ism_` tools. |
+| `mcp/server/InSharpMcp.Core` | Reusable MCP core library: routing, registry, security, limits, event log, trace store, selectors, assertions, transports, and `ism_` tools. |
+| `mcp/server/InSharpMcp.Broker` | Command-line MCP broker executable for IDE/client MCP configuration. |
 | `mcp/server/InSharpMcp.Adapters.Uno` | Uno/WinUI adapter for dispatcher, visual tree, metadata, DataContext, screenshots where supported, accessibility delegation, Windows input, and command-backed default action invocation. |
 | `mcp/server/InSharpMcp.Adapters.Avalonia` | Avalonia adapter for dispatcher, visual tree, metadata, DataContext, screenshots for measured controls, accessibility delegation, Windows input, and command-backed default action invocation. |
 | `mcp/server/InSharpMcp.Adapters.WinForms` | WinForms adapter for dispatcher, control tree, metadata, Tag-based DataContext, screenshots, accessibility delegation, Windows input, and button default action invocation. |
@@ -110,7 +111,7 @@ The core broker remains UI-framework-neutral. It knows how to select an app inst
 
 When exactly one compatible app instance is registered, tools can run without an explicit target. When more than one instance matches, InSharpMcp returns `ambiguous_target` instead of guessing. When a selected instance has no active client connection, it returns `stale_instance`.
 
-The current implementation provides in-process adapter building blocks. If your app process and broker process are separate, your host is responsible for providing the app-to-broker transport or bridge that registers an `IAppInstanceClient` with the broker.
+The current implementation provides in-process adapter building blocks. If your app process and broker process are separate, your host is responsible for providing the app-to-broker transport or bridge that registers an `IAppInstanceClient` with the broker. In short: run `InSharpMcp.Broker` from the IDE MCP config, and reference `InSharpMcp.Core` from host code that composes or extends the broker services.
 
 ## Starting the Broker
 
@@ -120,29 +121,24 @@ MCP is disabled by default. Host code should only start or register MCP when exp
 $env:ISM_ENABLED = "1"
 ```
 
-For stdio MCP clients, use the stdio broker host:
+For IDE MCP clients such as Codex or Cursor, use the broker executable. The default transport is stdio, which is what command-launched MCP clients normally expect.
 
-```csharp
-using InSharpMcp.Transports;
+From a source checkout, the command form is:
 
-await StdioBrokerHost.RunAsync(options =>
-{
-    options.Access.SharedToken = "replace-with-a-local-token";
-});
+```powershell
+dotnet run --project mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj -- --transport stdio --token replace-with-a-local-token
 ```
 
-For HTTP MCP clients, use the HTTP broker host:
+`InSharpMcp.Broker` is also configured as a .NET tool project with the command name `insharp-mcp`. After packaging and installing it as a tool, the command becomes:
 
-```csharp
-using InSharpMcp.Transports;
+```powershell
+insharp-mcp --transport stdio --token replace-with-a-local-token
+```
 
-await HttpBrokerHost.RunAsync(options =>
-{
-    options.HttpPort = 52001;
-    options.HttpPath = "/mcp";
-    options.BindHttpToLoopbackOnly = true;
-    options.Access.SharedToken = "replace-with-a-local-token";
-});
+For local HTTP clients, run the same executable in HTTP mode:
+
+```powershell
+dotnet run --project mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj -- --transport http --http-port 52001 --http-path /mcp --token replace-with-a-local-token
 ```
 
 HTTP binds to `127.0.0.1:52001` by default and maps the MCP endpoint at `/mcp`. Loopback binding is enabled by default.
@@ -223,6 +219,51 @@ Key and text input use native Windows input APIs instead of fabricated framework
 Default actions use public control contracts only. Uno invokes `ButtonBase.Command`, Avalonia invokes `ICommandSource.Command`, and WinForms invokes `IButtonControl.PerformClick()`. Elements without those public action surfaces return structured `unsupported`.
 
 ## MCP Client Configuration
+
+Command-launched MCP clients should point at the broker executable. From a source checkout, a Codex/Cursor-style configuration looks like this:
+
+```json
+{
+  "mcpServers": {
+    "insharp-mcp": {
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj",
+        "--",
+        "--transport",
+        "stdio",
+        "--token",
+        "replace-with-a-local-token"
+      ],
+      "env": {
+        "ISM_MAX_DEPTH": "20",
+        "ISM_MAX_NODES": "500",
+        "ISM_MAX_TEXT_CHARACTERS": "64000"
+      }
+    }
+  }
+}
+```
+
+After the broker is packaged and installed as the `insharp-mcp` .NET tool, the same config can use the tool command directly:
+
+```json
+{
+  "mcpServers": {
+    "insharp-mcp": {
+      "command": "insharp-mcp",
+      "args": [
+        "--transport",
+        "stdio",
+        "--token",
+        "replace-with-a-local-token"
+      ]
+    }
+  }
+}
+```
 
 An HTTP MCP client can connect to the default local endpoint with a configuration shaped like this:
 

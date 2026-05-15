@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 15: Public input and default-action wiring
+Phase 17: Rename core library for broker clarity
 
 ## Phases
 
@@ -162,6 +162,23 @@ Phase 15: Public input and default-action wiring
 - Avalonia default action invocation returns structured `unsupported` for elements that do not expose `ICommandSource.Command`.
 - WinForms default action invocation returns structured `unsupported` for elements that do not expose `IButtonControl`.
 
+### Phase 16: Callable MCP Broker Executable
+- [x] Add an executable broker project that can be referenced from IDE MCP config
+- [x] Default the executable to stdio MCP transport
+- [x] Add CLI options for HTTP mode, token, loopback binding, and concurrency basics
+- [x] Add the executable project to `mcp/server/InSharpMcp.sln`
+- [x] Document Codex/Cursor-style MCP config examples in `README.md`
+- [x] Build the broker executable and server solution
+- **Status:** complete
+
+### Phase 17: Rename Core Library for Broker Clarity
+- [x] Rename folder `mcp/server/InSharpMcp` to `mcp/server/InSharpMcp.Core`
+- [x] Rename project file `InSharpMcp.csproj` to `InSharpMcp.Core.csproj`
+- [x] Update project references and solution membership
+- [x] Update README and implementation summary wording to distinguish `InSharpMcp.Core` from `InSharpMcp.Broker`
+- [x] Build/test after rename
+- **Status:** complete
+
 ## Key Questions
 1. Which package-management style does this repository currently use?
 2. Which test framework is already present or most consistent with the repository?
@@ -198,6 +215,7 @@ Phase 15: Public input and default-action wiring
 | New test code used a stale `UiTreeSnapshot` named parameter and an unshown WinForms button | 1 | Updated the parameter name and showed the form in the STA test before invoking the default action. |
 | Native input injector method-group overload was ambiguous for `Enumerable.Select` | 1 | Replaced the method-group calls with explicit static lambdas. |
 | Avalonia automation invoker missed the `Avalonia.Visual` namespace import | 1 | Added the required `Avalonia` namespace import and rebuilt successfully. |
+| Broker command-line parser result used `Success` for both a record property and static factory | 1 | Renamed the static factory to `Ok`. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.

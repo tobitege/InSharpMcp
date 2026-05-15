@@ -2,6 +2,49 @@
 
 ## Session: 2026-05-15
 
+### Phase 17: Rename Core Library for Broker Clarity
+- **Status:** complete
+- Actions taken:
+  - Renamed `mcp/server/InSharpMcp` to `mcp/server/InSharpMcp.Core`.
+  - Renamed `InSharpMcp.csproj` to `InSharpMcp.Core.csproj`.
+  - Updated project references in tests and broker executable.
+  - Replaced the solution entry for `InSharpMcp` with `InSharpMcp.Core`.
+  - Updated README and implementation summary wording to state that `InSharpMcp.Broker` is the callable server process and `InSharpMcp.Core` is the reusable library.
+  - Verified `dotnet build mcp/server/InSharpMcp.sln`.
+  - Verified `dotnet test mcp/server/InSharpMcp.sln`.
+  - Verified `dotnet run --project mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj -- --help`.
+- Files created/modified:
+  - `README.md`
+  - `mcp/server/InSharpMcp.Core/*`
+  - `mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj`
+  - `mcp/server/InSharpMcp.sln`
+  - `mcp/server/tests/InSharpMcp.AdapterContractTests/InSharpMcp.AdapterContractTests.csproj`
+  - `mcp/server/tests/InSharpMcp.Tests/InSharpMcp.Tests.csproj`
+  - `plans/IMPLEMENTATION_SUMMARY.md`
+  - `plans/task_plan.md`
+  - `plans/progress.md`
+
+
+### Phase 16: Callable MCP Broker Executable
+- **Status:** complete
+- Actions taken:
+  - Identified that the repo had `StdioBrokerHost` and `HttpBrokerHost` library wrappers but no callable executable project.
+  - Confirmed this prevents direct IDE MCP configuration through a command such as Codex or Cursor expect.
+  - Added `InSharpMcp.Broker` as an executable .NET tool project with stdio as the default transport and HTTP as an option.
+  - Added the broker executable project to `mcp/server/InSharpMcp.sln`.
+  - Added Codex/Cursor-style command MCP config examples to `README.md`.
+  - Verified `dotnet run --project mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj -- --help`.
+  - Verified `dotnet build mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj`.
+  - Verified `dotnet build mcp/server/InSharpMcp.sln`.
+  - Verified `dotnet pack mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj`.
+  - Verified `dotnet test mcp/server/InSharpMcp.sln`.
+- Files created/modified:
+  - `README.md`
+  - `mcp/server/InSharpMcp.Broker/*`
+  - `mcp/server/InSharpMcp.sln`
+  - `plans/task_plan.md`
+  - `plans/progress.md`
+
 ### Phase 15: Public Input and Default-Action Wiring
 - **Status:** complete
 - Actions taken:

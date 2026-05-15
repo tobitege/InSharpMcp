@@ -18,7 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\InSharpMcp.Contracts\InSharpMcp.Contracts.csproj" />
-    <ProjectReference Include="..\..\InSharpMcp\InSharpMcp.csproj" />
+    <ProjectReference Include="..\..\InSharpMcp.Core\InSharpMcp.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

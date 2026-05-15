@@ -134,3 +134,14 @@
 - Protected tools are `ism_get_screenshot`, `ism_get_element_datacontext`, `ism_pointer_click`, `ism_key_press`, `ism_type_text`, `ism_element_peer_default_action`, and `ism_close`.
 - Client-configurable inspection limit keys are `ISM_MAX_DEPTH`, `ISM_MAX_NODES`, `ISM_MAX_TEXT_CHARACTERS`, `X-InSharpMcp-Max-Depth`, `X-InSharpMcp-Max-Nodes`, and `X-InSharpMcp-Max-Text-Characters`.
 - Current adapter packages provide in-process adapter building blocks. An app instance is represented by an `AppInstanceDescriptor` and an active `IAppInstanceClient`; external app-to-broker discovery/transport is still a host integration concern.
+
+## Broker Executable Gap
+- The core library contains `StdioBrokerHost.RunAsync` and `HttpBrokerHost.RunAsync`, but there is no executable project with `Program.Main`.
+- Without an executable broker, users cannot configure the project directly as a command-based MCP server in Codex, Cursor, or similar IDE/client MCP lists.
+- A proper broker executable should default to stdio, because command-launched MCP clients normally communicate over stdio.
+- `InSharpMcp.Broker` now provides the missing callable process. It defaults to stdio, supports HTTP mode, can be packed as a .NET tool with command name `insharp-mcp`, and has source-checkout MCP config examples in `README.md`.
+
+## Core/Broker Naming
+- The old `mcp/server/InSharpMcp` project name was confusing after adding `InSharpMcp.Broker`, because the runnable MCP server is the broker executable.
+- The reusable library project is now `mcp/server/InSharpMcp.Core/InSharpMcp.Core.csproj`.
+- The source namespace remains `InSharpMcp` for API continuity; the package/project identity is `InSharpMcp.Core`.

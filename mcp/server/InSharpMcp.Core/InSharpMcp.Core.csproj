@@ -17,8 +17,8 @@
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
     <Version>1.0.0</Version>
-    <Title>InSharpMcp Broker</Title>
-    <Description>Framework-independent MCP broker services and tool routing for .NET desktop UI automation.</Description>
+    <Title>InSharpMcp Core</Title>
+    <Description>Framework-independent MCP broker core services and tool routing for .NET desktop UI automation.</Description>
   </PropertyGroup>
 
 </Project>
