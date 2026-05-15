@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 6 - Interaction Tools
+Phase 7 - Tracing and Assertions
 
 ## Phases
 
@@ -64,13 +64,13 @@ Phase 6 - Interaction Tools
 - **Status:** complete
 
 ### Phase 6: Interaction Tools
-- [ ] Implement Windows pointer/key/text input only through proven platform APIs
-- [ ] Return explicit unsupported result for unvalidated Desktop/Skia input
-- [ ] Implement automation peer default action through public patterns only
-- [ ] Add optional protected before/after screenshot trace capture
-- [ ] Add tests for auth, validation, unsupported paths, cancellation, serialization, and trace entries
-- [ ] Commit tested interaction work
-- **Status:** in_progress
+- [x] Implement Windows pointer/key/text input only through proven platform APIs
+- [x] Return explicit unsupported result for unvalidated Desktop/Skia input
+- [x] Implement automation peer default action through public patterns only
+- [x] Add optional protected before/after screenshot trace capture
+- [x] Add tests for auth, validation, unsupported paths, cancellation, serialization, and trace entries
+- [x] Commit tested interaction work
+- **Status:** complete
 
 ### Phase 7: Tracing and Assertions
 - [ ] Add bounded trace start/stop tools
@@ -78,7 +78,7 @@ Phase 6 - Interaction Tools
 - [ ] Add assertion helpers for existence, visibility, enabled state, text, and value
 - [ ] Add tests for trace limits, redaction, assertion results, and cleanup
 - [ ] Commit tested tracing/assertion work
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 8: Additional Framework Adapters
 - [ ] Add Avalonia adapter only when a validating host is available

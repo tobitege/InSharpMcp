@@ -1,7 +1,9 @@
 using InSharpMcp.Contracts;
 using InSharpMcp.Concurrency;
+using InSharpMcp.Interaction;
 using InSharpMcp.Limits;
 using InSharpMcp.Registry;
+using InSharpMcp.Security;
 using InSharpMcp.Selectors;
 using ModelContextProtocol.Server;
 
@@ -194,6 +196,182 @@ public sealed class InSharpMcpTools
         var categorySet = categories is null ? null : new HashSet<string>(categories, StringComparer.Ordinal);
         var events = eventLog.List(categorySet, Math.Clamp(maximumCount, 1, 1_000));
         return ToolResult.Ok("Event log returned.", events);
+    }
+
+    [McpServerTool(Name = "ism_pointer_click")]
+    public static Task<ToolResult> PointerClick(
+        IPointerInputSimulator input,
+        IUiOperationQueue uiQueue,
+        McpAuthorization authorization,
+        InteractionInputValidator validator,
+        IEventLogProvider eventLog,
+        double x,
+        double y,
+        string? authorizationToken = null,
+        CancellationToken cancellationToken = default)
+    {
+        var authorized = authorization.AuthorizeTool("ism_pointer_click", McpTransportKind.Stdio, authorizationToken);
+        if (!authorized.Success)
+        {
+            return Task.FromResult(authorized);
+        }
+
+        var validation = validator.ValidateCoordinates(x, y);
+        if (!validation.Success)
+        {
+            return Task.FromResult(validation);
+        }
+
+        return RunInteractionAsync(
+            "ism_pointer_click",
+            eventLog,
+            uiQueue,
+            token => input.PointerClickAsync(x, y, token),
+            cancellationToken);
+    }
+
+    [McpServerTool(Name = "ism_key_press")]
+    public static Task<ToolResult> KeyPress(
+        IPointerInputSimulator input,
+        IUiOperationQueue uiQueue,
+        McpAuthorization authorization,
+        InteractionInputValidator validator,
+        IEventLogProvider eventLog,
+        string key,
+        string[]? modifiers = null,
+        string? authorizationToken = null,
+        CancellationToken cancellationToken = default)
+    {
+        var authorized = authorization.AuthorizeTool("ism_key_press", McpTransportKind.Stdio, authorizationToken);
+        if (!authorized.Success)
+        {
+            return Task.FromResult(authorized);
+        }
+
+        var effectiveModifiers = modifiers ?? [];
+        var validation = validator.ValidateKey(key, effectiveModifiers);
+        if (!validation.Success)
+        {
+            return Task.FromResult(validation);
+        }
+
+        return RunInteractionAsync(
+            "ism_key_press",
+            eventLog,
+            uiQueue,
+            token => input.KeyPressAsync(key, effectiveModifiers, token),
+            cancellationToken);
+    }
+
+    [McpServerTool(Name = "ism_type_text")]
+    public static Task<ToolResult> TypeText(
+        IPointerInputSimulator input,
+        IUiOperationQueue uiQueue,
+        McpAuthorization authorization,
+        InteractionInputValidator validator,
+        IEventLogProvider eventLog,
+        string text,
+        string? authorizationToken = null,
+        CancellationToken cancellationToken = default)
+    {
+        var authorized = authorization.AuthorizeTool("ism_type_text", McpTransportKind.Stdio, authorizationToken);
+        if (!authorized.Success)
+        {
+            return Task.FromResult(authorized);
+        }
+
+        var validation = validator.ValidateText(text);
+        if (!validation.Success)
+        {
+            return Task.FromResult(validation);
+        }
+
+        return RunInteractionAsync(
+            "ism_type_text",
+            eventLog,
+            uiQueue,
+            token => input.TypeTextAsync(text, token),
+            cancellationToken);
+    }
+
+    [McpServerTool(Name = "ism_element_peer_default_action")]
+    public static Task<ToolResult> ElementPeerDefaultAction(
+        IAutomationPeerInvoker invoker,
+        IUiOperationQueue uiQueue,
+        McpAuthorization authorization,
+        IEventLogProvider eventLog,
+        string elementIdentifier,
+        string? authorizationToken = null,
+        CancellationToken cancellationToken = default)
+    {
+        var authorized = authorization.AuthorizeTool("ism_element_peer_default_action", McpTransportKind.Stdio, authorizationToken);
+        if (!authorized.Success)
+        {
+            return Task.FromResult(authorized);
+        }
+
+        return RunInteractionAsync(
+            "ism_element_peer_default_action",
+            eventLog,
+            uiQueue,
+            token => invoker.InvokeDefaultActionAsync(elementIdentifier, token),
+            cancellationToken);
+    }
+
+    [McpServerTool(Name = "ism_close")]
+    public static Task<ToolResult> Close(
+        IAppProvider appProvider,
+        McpAuthorization authorization,
+        IEventLogProvider eventLog,
+        string? authorizationToken = null,
+        CancellationToken cancellationToken = default)
+    {
+        var authorized = authorization.AuthorizeTool("ism_close", McpTransportKind.Stdio, authorizationToken);
+        if (!authorized.Success)
+        {
+            return Task.FromResult(authorized);
+        }
+
+        return RunInteractionAsync(
+            "ism_close",
+            eventLog,
+            new PassthroughUiOperationQueue(),
+            appProvider.CloseAsync,
+            cancellationToken);
+    }
+
+    private static async Task<ToolResult> RunInteractionAsync(
+        string toolName,
+        IEventLogProvider eventLog,
+        IUiOperationQueue uiQueue,
+        Func<CancellationToken, Task<ToolResult>> operation,
+        CancellationToken cancellationToken)
+    {
+        var result = await uiQueue.RunAsync(toolName, operation, new ToolLimits(), cancellationToken).ConfigureAwait(false);
+        eventLog.Add(new EventLogEntry(
+            DateTimeOffset.UtcNow,
+            "interaction",
+            toolName,
+            new Dictionary<string, string>
+            {
+                ["success"] = result.Success.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["errorCode"] = result.ErrorCode ?? string.Empty,
+            }));
+        return result;
+    }
+
+    private sealed class PassthroughUiOperationQueue : IUiOperationQueue
+    {
+        public Task<ToolResult> RunAsync(
+            string operationName,
+            Func<CancellationToken, Task<ToolResult>> operation,
+            ToolLimits limits,
+            CancellationToken cancellationToken)
+        {
+            _ = operationName;
+            _ = limits;
+            return operation(cancellationToken);
+        }
     }
 
     private static ToolLimits CreateCallLimits(

@@ -21,6 +21,11 @@ public sealed class InSharpMcpToolCatalogTests
         Assert.Contains("ism_wait_for_element", toolNames);
         Assert.Contains("ism_get_accessibility_tree", toolNames);
         Assert.Contains("ism_get_event_log", toolNames);
+        Assert.Contains("ism_pointer_click", toolNames);
+        Assert.Contains("ism_key_press", toolNames);
+        Assert.Contains("ism_type_text", toolNames);
+        Assert.Contains("ism_element_peer_default_action", toolNames);
+        Assert.Contains("ism_close", toolNames);
         Assert.All(toolNames, name => Assert.StartsWith("ism_", name, StringComparison.Ordinal));
     }
 }
