@@ -22,6 +22,7 @@ public static class InSharpMcpServiceCollectionExtensions
         services.AddSingleton<AppRegistrationService>();
         services.AddSingleton<ToolLimitPolicy>();
         services.AddSingleton<ToolLimitPolicyEvaluator>();
+        services.AddSingleton<ClientLimitConfigurationParser>();
         services.AddSingleton(options.Concurrency);
         services.AddSingleton(options.Access);
         services.AddSingleton<McpAuthorization>();

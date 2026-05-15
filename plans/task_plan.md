@@ -25,16 +25,16 @@ Phase 1 - Safe Foundation
 - [x] Implement DI-based tools for instance listing and runtime info
 - [x] Implement broker stdio/HTTP transport, authorization, and bounded concurrency
 - [x] Implement app-side registration/unregistration and stale expiration
-- [ ] Add tests for discovery, registration, routing, authorization, limits, and runtime-info concurrency
-- [ ] Commit coherent safe-foundation slices as they pass verification
-- **Status:** in_progress
+- [x] Add tests for discovery, registration, routing, authorization, limits, and runtime-info concurrency
+- [x] Commit coherent safe-foundation slices as they pass verification
+- **Status:** complete
 
 ### Phase 2: Adapter Contract Harness
 - [ ] Create shared adapter contract tests
 - [ ] Define framework-neutral expectations for lookup, tree output, screenshots, and input
 - [ ] Add fake/in-memory adapters for core MCP tests
 - [ ] Commit tested harness work
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 3: Uno Adapter MVP
 - [ ] Create `InSharpMcp.Adapters.Uno`

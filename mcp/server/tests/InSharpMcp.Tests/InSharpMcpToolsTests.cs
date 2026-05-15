@@ -29,6 +29,21 @@ public sealed class InSharpMcpToolsTests
         Assert.True(result.Success);
     }
 
+    [Fact]
+    public async Task GetRuntimeInfo_AllowsConcurrentCallsWithIsolatedSelectors()
+    {
+        var registry = new AppInstanceRegistry();
+        registry.Register(CreateDescriptor("instance-1"));
+        var selector = new AppInstanceSelector(registry);
+        var tasks = Enumerable.Range(0, 16)
+            .Select(_ => Task.Run(() => InSharpMcpTools.GetRuntimeInfo(new AppTargetSelector(InstanceId: "instance-1"), selector)))
+            .ToArray();
+
+        var results = await Task.WhenAll(tasks);
+
+        Assert.All(results, result => Assert.True(result.Success));
+    }
+
     private static AppInstanceDescriptor CreateDescriptor(string instanceId) =>
         new(
             instanceId,
