@@ -116,3 +116,12 @@
 - Phase 12 `dotnet build mcp/server/InSharpMcp.sln` passed with 0 warnings and 0 errors.
 - Phase 12 `dotnet build demos/InSharpMcp.Demos.slnx` passed with 0 warnings and 0 errors.
 - Phase 12 `dotnet test mcp/server/InSharpMcp.sln` passed with 69 tests.
+
+## README Source Notes
+- There is no root `README.md` yet.
+- The public tool set currently contains 20 `ism_` tools.
+- The broker exposes stdio and HTTP host wrappers. HTTP defaults to `127.0.0.1:52001` and `/mcp`.
+- MCP startup is explicitly gated by `ISM_ENABLED=1`.
+- Protected tools are `ism_get_screenshot`, `ism_get_element_datacontext`, `ism_pointer_click`, `ism_key_press`, `ism_type_text`, `ism_element_peer_default_action`, and `ism_close`.
+- Client-configurable inspection limit keys are `ISM_MAX_DEPTH`, `ISM_MAX_NODES`, `ISM_MAX_TEXT_CHARACTERS`, `X-InSharpMcp-Max-Depth`, `X-InSharpMcp-Max-Nodes`, and `X-InSharpMcp-Max-Text-Characters`.
+- Current adapter packages provide in-process adapter building blocks. An app instance is represented by an `AppInstanceDescriptor` and an active `IAppInstanceClient`; external app-to-broker discovery/transport is still a host integration concern.

@@ -2,6 +2,22 @@
 
 ## Session: 2026-05-15
 
+### Phase 13: GitHub README and User Manual
+- **Status:** complete
+- Actions taken:
+  - Ran planning session catchup for the `plans` folder; it produced no unsynced context output.
+  - Confirmed the repository does not currently have a root `README.md`.
+  - Inventoried available Markdown, solution, and project files.
+  - Read the implementation plan, implementation summary, demo README, adapter validation notes, core tool definitions, broker options, app registration surfaces, adapter DI extensions, limits, security, selector models, and routing client APIs.
+  - Created a root `README.md` structured as a GitHub project README and user manual.
+  - Checked referenced files exist and confirmed the README tool list matches the registered `ism_` tool names.
+  - Marked the README documentation phase complete.
+- Files created/modified:
+  - `README.md`
+  - `plans/task_plan.md`
+  - `plans/progress.md`
+  - `plans/findings.md`
+
 ### Phase 12: Avalonia and WinForms Adapters
 - **Status:** complete
 - Actions taken:

@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 12: Avalonia and WinForms adapters
+Phase 13: GitHub README and user manual
 
 ## Phases
 
@@ -127,6 +127,13 @@ Phase 12: Avalonia and WinForms adapters
 - [x] Wire adapter projects into `mcp/server/InSharpMcp.sln` and central package management
 - [x] Build each adapter, build demo solution, run full server tests
 - [x] Update docs/planning summary and commit coherent slices
+- **Status:** complete
+
+### Phase 13: GitHub README and User Manual
+- [x] Inventory available documentation and source surfaces
+- [x] Extract the public integration, adapter, tool, security, and verification details
+- [x] Create root `README.md` with clear GitHub structure and plain-language user guidance
+- [x] Verify Markdown/source consistency and commit the documentation slice
 - **Status:** complete
 
 ## Key Questions
