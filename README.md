@@ -10,7 +10,7 @@ This repository currently contains the core broker, shared contracts, Uno, Avalo
 
 The project is source-ready but not published as NuGet packages from this repository. Use project references while developing against it.
 
-The verified implementation includes the `InSharpMcp` core, `InSharpMcp.Contracts`, `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, and `InSharpMcp.Adapters.WinForms`. The final verification run passed 69 tests, and the demo solution builds all three planned environments.
+The verified implementation includes the `InSharpMcp` core, `InSharpMcp.Contracts`, `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, and `InSharpMcp.Adapters.WinForms`. The final verification run passed 69 tests, and the demo solution builds all three planned environments. The repository currently pins Avalonia to `11.3.9`; the Avalonia adapter has also been compile-checked against Avalonia `12.0.3`, so the current implementation does not require separate v11 and v12 adapter source versions.
 
 Some platform behaviors intentionally return a structured `unsupported` result. InSharpMcp does not fake pointer, keyboard, or text input by raising framework events manually. Those tools are only implemented when there is a proven public platform path.
 
