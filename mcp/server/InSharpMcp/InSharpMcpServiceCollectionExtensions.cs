@@ -6,6 +6,7 @@ using InSharpMcp.Limits;
 using InSharpMcp.Registry;
 using InSharpMcp.Security;
 using InSharpMcp.Selectors;
+using InSharpMcp.Tracing;
 using InSharpMcp.Transports;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,6 +30,7 @@ public static class InSharpMcpServiceCollectionExtensions
         services.AddSingleton<ElementSelectorMatcher>();
         services.AddSingleton<InteractionInputValidator>();
         services.AddSingleton<IEventLogProvider, BoundedEventLog>();
+        services.AddSingleton<ITraceStore, BoundedTraceStore>();
         services.AddSingleton(options.Concurrency);
         services.AddSingleton(options.Access);
         services.AddSingleton<McpAuthorization>();

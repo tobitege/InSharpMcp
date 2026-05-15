@@ -5,6 +5,7 @@ using InSharpMcp.Limits;
 using InSharpMcp.Registry;
 using InSharpMcp.Security;
 using InSharpMcp.Selectors;
+using InSharpMcp.Tracing;
 using ModelContextProtocol.Server;
 
 namespace InSharpMcp.Tools;
@@ -338,6 +339,74 @@ public sealed class InSharpMcpTools
             new PassthroughUiOperationQueue(),
             appProvider.CloseAsync,
             cancellationToken);
+    }
+
+    [McpServerTool(Name = "ism_start_trace")]
+    public static ToolResult StartTrace(ITraceStore traceStore)
+    {
+        var traceId = traceStore.Start();
+        return ToolResult.Ok("Trace started.", new { TraceId = traceId });
+    }
+
+    [McpServerTool(Name = "ism_stop_trace")]
+    public static ToolResult StopTrace(ITraceStore traceStore, string traceId)
+    {
+        return traceStore.Stop(traceId);
+    }
+
+    [McpServerTool(Name = "ism_assert_element_exists")]
+    public static async Task<ToolResult> AssertElementExists(
+        IUiTreeInspector inspector,
+        IUiOperationQueue uiQueue,
+        ToolLimitPolicyEvaluator limitPolicy,
+        ElementSelectorMatcher matcher,
+        ElementSelector selector,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await QueryElements(inspector, uiQueue, limitPolicy, matcher, selector, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        var passed = result.Data is ElementQueryResult { Matches.Count: > 0 };
+        return ToolResult.Ok(
+            passed ? "Assertion passed." : "Assertion failed.",
+            new AssertionResult(passed, passed ? "Element exists." : "Element was not found.", result.Data));
+    }
+
+    [McpServerTool(Name = "ism_assert_element_text")]
+    public static async Task<ToolResult> AssertElementText(
+        IUiTreeInspector inspector,
+        IUiOperationQueue uiQueue,
+        ToolLimitPolicyEvaluator limitPolicy,
+        ElementSelectorMatcher matcher,
+        ElementSelector selector,
+        string expectedText,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await QueryElements(inspector, uiQueue, limitPolicy, matcher, selector, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        var actual = (result.Data as ElementQueryResult)?.Matches.FirstOrDefault()?.Text;
+        var passed = string.Equals(actual, expectedText, StringComparison.Ordinal);
+        return ToolResult.Ok(
+            passed ? "Assertion passed." : "Assertion failed.",
+            new AssertionResult(passed, $"Expected text '{expectedText}'.", actual));
+    }
+
+    [McpServerTool(Name = "ism_assert_element_enabled")]
+    public static async Task<ToolResult> AssertElementEnabled(
+        IUiTreeInspector inspector,
+        IUiOperationQueue uiQueue,
+        ToolLimitPolicyEvaluator limitPolicy,
+        ElementSelectorMatcher matcher,
+        ElementSelector selector,
+        bool expectedEnabled,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await QueryElements(inspector, uiQueue, limitPolicy, matcher, selector, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
+        var actual = (result.Data as ElementQueryResult)?.Matches.FirstOrDefault()?.IsEnabled;
+        var passed = actual == expectedEnabled;
+        return ToolResult.Ok(
+            passed ? "Assertion passed." : "Assertion failed.",
+            new AssertionResult(passed, $"Expected enabled state '{expectedEnabled}'.", actual));
     }
 
     private static async Task<ToolResult> RunInteractionAsync(

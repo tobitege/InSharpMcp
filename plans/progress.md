@@ -61,6 +61,7 @@
 | Phase 4 screenshot/DataContext | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 42 tests passed | Pass |
 | Phase 5 selectors/waits/accessibility/events | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 48 tests passed | Pass |
 | Phase 6 interaction tools | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 53 tests passed | Pass |
+| Phase 7 tracing/assertions | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 56 tests passed | Pass |
 
 ### Phase 2: Adapter Contract Harness
 - **Status:** complete
@@ -162,6 +163,24 @@
   - `plans/findings.md`
   - `plans/progress.md`
 
+### Phase 7: Tracing and Assertions
+- **Status:** complete
+- Actions taken:
+  - Added bounded trace store and trace summary model.
+  - Added `ism_start_trace` and `ism_stop_trace`.
+  - Added structured `AssertionResult`.
+  - Added assertion helpers for element existence, text, and enabled state.
+  - Added tests for trace start/stop summaries and assertion pass/fail results.
+- Files created/modified:
+  - `mcp/server/InSharpMcp.Contracts/TraceSummary.cs`
+  - `mcp/server/InSharpMcp.Contracts/AssertionResult.cs`
+  - `mcp/server/InSharpMcp/Tracing/*`
+  - `mcp/server/InSharpMcp/Tools/InSharpMcpTools.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/TraceAndAssertionToolTests.cs`
+  - `plans/task_plan.md`
+  - `plans/findings.md`
+  - `plans/progress.md`
+
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
 |-----------|-------|---------|------------|
@@ -177,8 +196,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 7 - Tracing and Assertions. |
-| Where am I going? | Add bounded trace start/stop tools and assertion helpers. |
+| Where am I? | Phase 8 - Additional Framework Adapters. |
+| Where am I going? | Determine whether Avalonia/WinForms validation hosts are available; otherwise document the blocker per plan. |
 | What's the goal? | Fully implement `plans/PLAN.md` with verification evidence and a clean final working tree. |
 | What have I learned? | See `plans/findings.md`. |
-| What have I done? | Completed Phase 1 through Phase 6 with 53 passing tests, including protected interaction tool surfaces. |
+| What have I done? | Completed Phase 1 through Phase 7 with 56 passing tests, including tracing and assertion helpers. |

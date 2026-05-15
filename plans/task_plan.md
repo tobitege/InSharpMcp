@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 7 - Tracing and Assertions
+Phase 8 - Additional Framework Adapters
 
 ## Phases
 
@@ -73,12 +73,12 @@ Phase 7 - Tracing and Assertions
 - **Status:** complete
 
 ### Phase 7: Tracing and Assertions
-- [ ] Add bounded trace start/stop tools
-- [ ] Record selector resolution, waits, timings, errors, and optional screenshot references
-- [ ] Add assertion helpers for existence, visibility, enabled state, text, and value
-- [ ] Add tests for trace limits, redaction, assertion results, and cleanup
-- [ ] Commit tested tracing/assertion work
-- **Status:** in_progress
+- [x] Add bounded trace start/stop tools
+- [x] Record selector resolution, waits, timings, errors, and optional screenshot references
+- [x] Add assertion helpers for existence, visibility, enabled state, text, and value
+- [x] Add tests for trace limits, redaction, assertion results, and cleanup
+- [x] Commit tested tracing/assertion work
+- **Status:** complete
 
 ### Phase 8: Additional Framework Adapters
 - [ ] Add Avalonia adapter only when a validating host is available
@@ -86,7 +86,7 @@ Phase 7 - Tracing and Assertions
 - [ ] Run shared adapter contract tests against each implemented adapter
 - [ ] Document any validation-host blocker instead of adding unverified implementation
 - [ ] Commit tested adapter work or documented blocker state
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 9: Final Verification and Handoff
 - [ ] Map every `plans/PLAN.md` requirement to implementation or documented allowed unsupported/TBD behavior

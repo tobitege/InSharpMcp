@@ -32,6 +32,7 @@
 - Structured selectors are represented as JSON-bindable `ElementSelector` records and matched against bounded `UiTreeSnapshot` data in deterministic preorder.
 - Event log entries are bounded and redact sensitive data keys before storage.
 - Protected interaction tools now authorize through `McpAuthorization`, validate input before dispatch, run through the UI queue where applicable, and record interaction event-log entries.
+- Trace start/stop uses a bounded in-memory trace store and assertion helpers return structured pass/fail `AssertionResult` data without throwing for normal failures.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -48,6 +49,7 @@
 | Put DataContext reflection in contracts instead of the Uno adapter | The bounding/redaction behavior is framework-independent and can be tested without a live UI. |
 | Implement selector matching over framework-neutral snapshots | It keeps the selector grammar independent from any adapter and makes query/wait behavior testable without a live UI. |
 | Use event-log entries as the initial trace surface for interaction tools | It provides auditable interaction result entries before the dedicated trace start/stop phase. |
+| Keep assertion helpers result-oriented rather than exception-oriented | Normal assertion failures are expected tool outcomes and should return structured data. |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -73,3 +75,4 @@
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 42 tests after adding screenshot tool shape and DataContext metadata redaction/cap tests.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 48 tests after adding selectors, wait, accessibility, and event-log tooling.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 53 tests after adding interaction tools.
+- `dotnet test mcp/server/InSharpMcp.sln` passed with 56 tests after adding trace start/stop and assertion helpers.
