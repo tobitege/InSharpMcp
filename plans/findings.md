@@ -26,6 +26,8 @@
 - Restored MCP SDK metadata documents `AddMcpServer`, `WithStdioServerTransport`, `WithHttpTransport`, `WithTools<T>`, and `MapMcp`.
 - `McpServerToolAttribute.Name` is nullable in the SDK surface, so tool catalog discovery must provide a deterministic method-name fallback.
 - Shared adapter contract harness now uses framework-neutral `UiElementNode`, `UiTreeSnapshot`, and `ElementMetadata` records.
+- `Uno.Sdk` version `6.5.33` exists on NuGet and restores for the adapter project.
+- `InSharpMcp.Adapters.Uno` builds for `net9.0-windows10.0.19041` and `net9.0-desktop` in the current environment.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -38,6 +40,7 @@
 | Keep broker host classes as thin startup wrappers around SDK hosting APIs | Transport behavior should stay in the official SDK while InSharpMcp owns policy, registry, and adapter routing services. |
 | Use reflection over `InSharpMcpTools` for the initial tool catalog test | It verifies SDK attributes and `ism_` tool names without starting a long-lived MCP server process. |
 | Put fake adapters in `InSharpMcp.AdapterContractTests` first | The harness validates contract expectations without adding test-only helpers to production packages. |
+| Leave Uno screenshot, input, and automation peer invocation as explicit unsupported results until their later plan phases | Phase 3 only requires dispatcher, visual-tree inspector, metadata, and unsupported-path behavior; later phases add screenshot/DataContext/input details. |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -46,6 +49,8 @@
 | Initial HTTP host wrapper used `WebApplication` async overloads unavailable in this target shape. | Switched to configured URLs plus cancellation-triggered `StopAsync()` and `RunAsync()`. |
 | Tool catalog initially assumed SDK tool attribute names are non-null. | Added method-name fallback for nullable `Name`. |
 | xUnit template restore failed under central package management for the new adapter contract test project. | Removed generated package versions and restored through the solution. |
+| Uno adapter registration needed a non-null content root for `UnoVisualTreeInspector`. | Added an explicit guard that reports missing window content at DI resolution time. |
+| Visual-tree tool test forgot policy minimum clamping for `MaxTextCharacters`. | Corrected the expected value to `1024`. |
 
 ## Resources
 - `plans/PLAN.md`
@@ -55,3 +60,4 @@
 ## Verification Notes
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 25 tests after completing Phase 1 verification coverage.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 34 tests after adding Phase 2 adapter contract harness.
+- `dotnet test mcp/server/InSharpMcp.sln` passed with 36 tests after adding the Uno adapter MVP and visual-tree/metadata tools.

@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 3 - Uno Adapter MVP
+Phase 4 - Screenshot and DataContext Metadata
 
 ## Phases
 
@@ -37,13 +37,13 @@ Phase 3 - Uno Adapter MVP
 - **Status:** complete
 
 ### Phase 3: Uno Adapter MVP
-- [ ] Create `InSharpMcp.Adapters.Uno`
-- [ ] Implement `UnoUiDispatcher`
-- [ ] Implement bounded `UnoVisualTreeInspector`
-- [ ] Add visual tree and metadata tools
-- [ ] Add tests for limits, truncation, unsupported behavior, and queueing
-- [ ] Commit tested Uno MVP work
-- **Status:** in_progress
+- [x] Create `InSharpMcp.Adapters.Uno`
+- [x] Implement `UnoUiDispatcher`
+- [x] Implement bounded `UnoVisualTreeInspector`
+- [x] Add visual tree and metadata tools
+- [x] Add tests for limits, truncation, unsupported behavior, and queueing
+- [x] Commit tested Uno MVP work
+- **Status:** complete
 
 ### Phase 4: Screenshot and DataContext Metadata
 - [ ] Implement supported Windows screenshot capture and MCP image-content shape
@@ -51,7 +51,7 @@ Phase 3 - Uno Adapter MVP
 - [ ] Implement bounded non-recursive DataContext metadata
 - [ ] Add tests for redaction, caps, image/error shapes, and concurrency
 - [ ] Commit tested screenshot/DataContext work
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 5: Selectors, Waits, Accessibility, and Events
 - [ ] Implement structured JSON selectors and validation
@@ -115,6 +115,8 @@ Phase 3 - Uno Adapter MVP
 | `dotnet test --no-restore` failed after adding package references | 1 | Reran `dotnet test` with restore enabled; build and tests passed. |
 | HTTP host wrapper used unavailable `RunAsync(CancellationToken)`/`WaitForShutdownAsync` shapes for `WebApplication` | 1 | Registered cancellation to call `StopAsync()` and awaited `RunAsync()` after configuring URLs. |
 | xUnit template restore failed because versioned package references conflicted with central package management | 1 | Removed package versions from the new adapter contract test project before restore. |
+| Uno adapter DI registration treated nullable `window.Content` as non-null | 1 | Added explicit content-root guard before constructing `UnoVisualTreeInspector`. |
+| Visual-tree metadata test expected unclamped `MaxTextCharacters` | 1 | Updated the assertion to expect the configured policy minimum. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.

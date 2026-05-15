@@ -1,4 +1,6 @@
 using InSharpMcp.Contracts;
+using InSharpMcp.Concurrency;
+using InSharpMcp.Limits;
 using InSharpMcp.Registry;
 using ModelContextProtocol.Server;
 
@@ -51,5 +53,52 @@ public sealed class InSharpMcpTools
                 instance.OperatingSystem,
                 instance.AppVersion,
             });
+    }
+
+    [McpServerTool(Name = "ism_visualtree_snapshot")]
+    public static Task<ToolResult> VisualTreeSnapshot(
+        IUiTreeInspector inspector,
+        IUiOperationQueue uiQueue,
+        ToolLimitPolicyEvaluator limitPolicy,
+        int? maxDepth = null,
+        int? maxNodes = null,
+        CancellationToken cancellationToken = default)
+    {
+        var limits = CreateCallLimits(limitPolicy, maxDepth, maxNodes, maxTextCharacters: null);
+        return uiQueue.RunAsync(
+            "visualtree_snapshot",
+            token => inspector.GetVisualTreeSnapshotAsync(limits, token),
+            limits,
+            cancellationToken);
+    }
+
+    [McpServerTool(Name = "ism_get_element_metadata")]
+    public static Task<ToolResult> GetElementMetadata(
+        IUiTreeInspector inspector,
+        IUiOperationQueue uiQueue,
+        ToolLimitPolicyEvaluator limitPolicy,
+        string elementIdentifier,
+        int? maxTextCharacters = null,
+        CancellationToken cancellationToken = default)
+    {
+        var limits = CreateCallLimits(limitPolicy, maxDepth: null, maxNodes: null, maxTextCharacters);
+        return uiQueue.RunAsync(
+            "get_element_metadata",
+            token => inspector.GetElementMetadataAsync(elementIdentifier, limits, token),
+            limits,
+            cancellationToken);
+    }
+
+    private static ToolLimits CreateCallLimits(
+        ToolLimitPolicyEvaluator limitPolicy,
+        int? maxDepth,
+        int? maxNodes,
+        int? maxTextCharacters)
+    {
+        var result = limitPolicy.Evaluate(new ClientLimitConfiguration(
+            maxDepth?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            maxNodes?.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            maxTextCharacters?.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        return result.Limits;
     }
 }
