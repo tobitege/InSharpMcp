@@ -1,7 +1,6 @@
 using InSharpMcp.Concurrency;
 using InSharpMcp.Contracts;
 using InSharpMcp.Limits;
-using InSharpMcp.Security;
 using InSharpMcp.Tools;
 
 namespace InSharpMcp.Tests;
@@ -59,12 +58,9 @@ public sealed class VisualTreeToolTests
         var result = await InSharpMcpTools.GetElementDataContext(
             router,
             policy,
-            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new McpRequestAuthorizationResolver(),
             "root",
             maxNodes: 2,
             maxTextCharacters: 2048,
-            authorizationToken: "secret",
             cancellationToken: CancellationToken.None);
 
         Assert.True(result.Success);
@@ -82,9 +78,6 @@ public sealed class VisualTreeToolTests
 
         var result = await InSharpMcpTools.GetScreenshot(
             router,
-            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new McpRequestAuthorizationResolver(),
-            authorizationToken: "secret",
             cancellationToken: CancellationToken.None);
 
         Assert.True(result.Success);

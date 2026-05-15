@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using InSharpMcp.Adapters.WinForms;
+using InSharpMcp.Bridge;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace InSharpMcp.Demo.WinForms;
@@ -12,6 +14,7 @@ public partial class Form1 : Form
         InitializeComponent();
         BuildDemoSurface();
         _mcpServices = BuildMcpServices();
+        Shown += (_, _) => _ = RegisterWithBrokerAsync();
         FormClosed += (_, _) => _mcpServices.Dispose();
     }
 
@@ -181,6 +184,30 @@ public partial class Form1 : Form
             "InSharpMcp WinForms Demo",
             typeof(Form1).Assembly.GetName().Version?.ToString() ?? "0.0.0",
             "WinForms");
+        services.AddInSharpMcpBridge();
         return services.BuildServiceProvider();
+    }
+
+    private async Task RegisterWithBrokerAsync()
+    {
+        var registration = new AppBridgeRegistration(
+            AppId: "insharpmcp.demo.winforms",
+            AppName: "InSharpMcp WinForms Demo",
+            AdapterKind: "winforms",
+            PlatformTarget: "WinForms",
+            AppVersion: typeof(Form1).Assembly.GetName().Version?.ToString() ?? "0.0.0",
+            Capabilities: AppBridgeCapabilities.Standard,
+            InstanceId: $"winforms-demo-{Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+
+        try
+        {
+            await _mcpServices.GetRequiredService<InSharpMcpBridge>()
+                .StartAsync(registration)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            Debug.WriteLine($"InSharpMcp demo registration failed: {exception.Message}");
+        }
     }
 }

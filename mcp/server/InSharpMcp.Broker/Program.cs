@@ -53,11 +53,10 @@ catch (Exception exception)
 
 static void CopyOptions(BrokerMcpHostOptions source, BrokerMcpHostOptions target)
 {
-    target.Access = source.Access;
     target.Concurrency = source.Concurrency;
     target.HttpPath = source.HttpPath;
     target.HttpPort = source.HttpPort;
-    target.BindHttpToLoopbackOnly = source.BindHttpToLoopbackOnly;
+    target.LocalAppTransport = source.LocalAppTransport;
 }
 
 internal static class HelpText
@@ -70,17 +69,14 @@ Usage:
 
 Options:
     --transport stdio|http          MCP transport to run. Defaults to stdio.
-    --token <token>                 Shared token for protected tools.
-    --allow-unauthenticated-http    Allow HTTP protected tools without a token.
-    --http-port <port>              HTTP port. Defaults to 52001.
+    --http-port <port>              HTTP loopback port. Defaults to 52001.
     --http-path <path>              HTTP MCP path. Defaults to /mcp.
-    --http-any-host                 Bind HTTP to 0.0.0.0 instead of loopback.
     --max-concurrent-calls <count>  Maximum concurrent broker calls.
     --max-queued-ui-operations <count>
                                     Maximum queued UI operations per app client.
     -h, --help                      Show help.
 
 IDE MCP clients normally use stdio:
-    insharp-mcp --transport stdio --token <token>
+    insharp-mcp --transport stdio
 """;
 }

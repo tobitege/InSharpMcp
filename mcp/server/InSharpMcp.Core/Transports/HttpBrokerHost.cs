@@ -23,7 +23,7 @@ public static class HttpBrokerHost
             .WithTools<InSharpMcpTools>();
 
         var app = builder.Build();
-        app.Use(RejectRemoteHostsWhenRequired(options));
+        app.Use(RejectRemoteHosts);
         app.MapMcp(options.HttpPath);
 
         using var stopRegistration = cancellationToken.Register(
@@ -41,22 +41,20 @@ public static class HttpBrokerHost
 
     private static string CreateBinding(BrokerMcpHostOptions options)
     {
-        var host = options.BindHttpToLoopbackOnly ? "127.0.0.1" : "0.0.0.0";
-        return $"http://{host}:{options.HttpPort.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+        return $"http://127.0.0.1:{options.HttpPort.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
     }
 
-    private static Func<HttpContext, RequestDelegate, Task> RejectRemoteHostsWhenRequired(BrokerMcpHostOptions options) =>
-        async (context, next) =>
+    private static async Task RejectRemoteHosts(HttpContext context, RequestDelegate next)
+    {
+        if (!IPAddressIsLoopback(context.Connection.RemoteIpAddress))
         {
-            if (options.BindHttpToLoopbackOnly && !IPAddressIsLoopback(context.Connection.RemoteIpAddress))
-            {
-                context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                await context.Response.WriteAsync("Remote HTTP clients are not allowed.").ConfigureAwait(false);
-                return;
-            }
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context.Response.WriteAsync("Remote HTTP clients are not allowed.").ConfigureAwait(false);
+            return;
+        }
 
-            await next(context).ConfigureAwait(false);
-        };
+        await next(context).ConfigureAwait(false);
+    }
 
     private static bool IPAddressIsLoopback(System.Net.IPAddress? address) =>
         address is null || System.Net.IPAddress.IsLoopback(address);

@@ -5,7 +5,6 @@ using InSharpMcp.Interaction;
 using InSharpMcp.Limits;
 using InSharpMcp.Registry;
 using InSharpMcp.Routing;
-using InSharpMcp.Security;
 using InSharpMcp.Selectors;
 using InSharpMcp.Tracing;
 using InSharpMcp.Transports;
@@ -35,12 +34,10 @@ public static class InSharpMcpServiceCollectionExtensions
         services.AddSingleton<IEventLogProvider, BoundedEventLog>();
         services.AddSingleton<ITraceStore, BoundedTraceStore>();
         services.AddSingleton(options.Concurrency);
-        services.AddSingleton(options.Access);
-        services.AddSingleton<McpAuthorization>();
-        services.AddHttpContextAccessor();
-        services.AddSingleton<McpRequestAuthorizationResolver>();
         services.AddSingleton<ConcurrentCallGate>();
         services.AddSingleton<IUiOperationQueue, UiOperationQueue>();
+        services.AddSingleton(options.LocalAppTransport);
+        services.AddHostedService<LocalBrokerPipeServer>();
 
         return services;
     }

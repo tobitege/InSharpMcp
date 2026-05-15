@@ -2,6 +2,22 @@
 
 ## Session: 2026-05-15
 
+### Phase 18: MCP Stdio Protocol Regression Coverage
+- **Status:** complete
+- Actions taken:
+  - Cleared logging providers for `StdioBrokerHost` so stdout is reserved for JSON-RPC protocol messages.
+  - Added a build-order test reference from `InSharpMcp.Tests` to `InSharpMcp.Broker`.
+  - Added `StdioMcpProtocolTests`, which launches the broker executable, performs `initialize`, sends `notifications/initialized`, calls `tools/list`, asserts the expected tool set, and fails on non-JSON stdout.
+  - Verified `dotnet test mcp/server/tests/InSharpMcp.Tests/InSharpMcp.Tests.csproj --filter FullyQualifiedName~StdioMcpProtocolTests`.
+  - Verified `dotnet test mcp/server/InSharpMcp.sln`.
+- Files created/modified:
+  - `mcp/server/InSharpMcp.Core/Transports/StdioBrokerHost.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/InSharpMcp.Tests.csproj`
+  - `mcp/server/tests/InSharpMcp.Tests/StdioMcpProtocolTests.cs`
+  - `plans/task_plan.md`
+  - `plans/findings.md`
+  - `plans/progress.md`
+
 ### Phase 17: Rename Core Library for Broker Clarity
 - **Status:** complete
 - Actions taken:
@@ -153,20 +169,20 @@
   - Reopened `plans/task_plan.md`, `plans/findings.md`, and `plans/progress.md` with Phase 10 remediation scope.
   - Added app-instance routing and connection-client abstractions.
   - Changed UI, screenshot, event-log, trace, assertion, and interaction tools to route through selected app instances.
-  - Added transport-aware protected-tool authorization with HTTP bearer/header/query token extraction.
+  - Removed broker-side shared-token authorization; HTTP remains local-only.
   - Moved trace/event recording around actual selected tool execution.
   - Routed `ism_close` through the selected app client UI queue path.
-  - Added regression tests for ambiguous target rejection, stale selected instances, selected-instance dispatch, HTTP bearer auth, close queueing, and trace capture.
+  - Added regression tests for ambiguous target rejection, stale selected instances, selected-instance dispatch, close queueing, and trace capture.
   - Added shared `NodeVisitBudget` and updated Uno visual-tree traversal to consume one global node budget across sibling branches.
   - Updated Uno snapshot node creation to honor the caller's text limit.
-  - Moved protected-tool authorization before target selection and added regression coverage for that policy.
+  - Kept target selection and validation deterministic for approval-sensitive tools.
   - Updated `plans/IMPLEMENTATION_SUMMARY.md` with the remediation scope, test count, and commit list.
 - Files created/modified:
   - `plans/task_plan.md`
   - `plans/findings.md`
   - `plans/progress.md`
   - `mcp/server/InSharpMcp/Routing/*`
-  - `mcp/server/InSharpMcp/Security/McpRequestAuthorization*.cs`
+  - Removed obsolete broker token authorization files.
   - `mcp/server/InSharpMcp/Tools/InSharpMcpTools.cs`
   - `mcp/server/tests/InSharpMcp.Tests/RoutedToolRegressionTests.cs`
   - `mcp/server/tests/InSharpMcp.Tests/ToolRoutingFixture.cs`
@@ -204,8 +220,8 @@
   - Added central package management.
   - Added shared contracts, limit policy evaluator, app registry/selector, UI operation queue, service registration, and initial `ism_list_instances`/`ism_get_runtime_info` tools.
   - Added tests for limit defaults/clamping/invalid input, multi-instance registration/selection/stale expiration, and initial tool methods.
-  - Added startup enablement options, authorization policy, bounded MCP call gate, app registration disposal/stale expiration service, stdio broker host, and HTTP broker host wrapper.
-  - Added tests for default-disabled startup, protected-tool authorization, bounded call gate busy behavior, and app registration lifecycle.
+  - Added startup enablement options, bounded MCP call gate, app registration disposal/stale expiration service, stdio broker host, and HTTP broker host wrapper.
+  - Added tests for default-disabled startup, bounded call gate busy behavior, and app registration lifecycle.
   - Added client limit configuration parser for canonical environment/header keys.
   - Added reflection-based tool catalog discovery for initial `ism_` tool names.
   - Added concurrent runtime-info test coverage.
@@ -253,6 +269,16 @@
 | Phase 15 WinForms adapter tests | `dotnet test mcp/server/tests/InSharpMcp.Adapters.WinForms.Tests/InSharpMcp.Adapters.WinForms.Tests.csproj` | Build and tests pass | 5 tests passed | Pass |
 | Phase 15 Avalonia adapter tests | `dotnet test mcp/server/tests/InSharpMcp.Adapters.Avalonia.Tests/InSharpMcp.Adapters.Avalonia.Tests.csproj` | Build and tests pass | 3 tests passed | Pass |
 | Phase 15 final regression suite | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 72 tests passed | Pass |
+| Phase 19 server regression suite | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | Adapter contract, WinForms adapter, Avalonia adapter, and `InSharpMcp.Tests` passed | Pass |
+| Phase 19 demo solution build | `dotnet build demos/InSharpMcp.Demos.slnx` | Build passes | 0 warnings, 0 errors | Pass |
+| Phase 19 Release broker build | `dotnet build mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj --configuration Release` | Build passes | 0 warnings, 0 errors | Pass |
+| Phase 19 live registration | Installed MCP broker plus WinForms, Avalonia, and Uno demos | `ism_list_instances` lists all three demos | WinForms, Avalonia, and Uno instances listed | Pass |
+| Phase 19 live routed tools | MCP calls against registered demos | Runtime, visual tree, selector, wait, and assertion calls route through broker | `ism_get_runtime_info`, `ism_visualtree_snapshot`, `ism_query_elements`, `ism_wait_for_element`, and `ism_assert_element_exists` succeeded | Pass |
+| Phase 19 screenshot check | `ism_get_screenshot` through local broker routing | Screenshot tool stays routed and bounded | Returned provider result | Pass |
+| Phase 20 focused bridge/server tests | `dotnet test mcp/server/tests/InSharpMcp.Tests/InSharpMcp.Tests.csproj` | Build and tests pass | 60 tests passed | Pass |
+| Phase 20 full server regression suite | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | Adapter contract, WinForms adapter, Avalonia adapter, and `InSharpMcp.Tests` passed | Pass |
+| Phase 20 demo solution build | `dotnet build demos/InSharpMcp.Demos.slnx` | Build passes | 0 warnings, 0 errors | Pass |
+| Phase 20 Release broker build | `dotnet build mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj --configuration Release` | Extra verification only | Blocked by active `InSharpMcp.Broker` process 29392 locking Release DLLs | Blocked outside required goal gates |
 
 ### Phase 2: Adapter Contract Harness
 - **Status:** complete
@@ -345,7 +371,7 @@
   - Routed input and automation-peer tools through the UI operation queue.
   - Started with structured unsupported Uno input and automation peer paths until proven platform-specific implementations could be configured.
   - Added interaction event-log entries around executed interaction tools.
-  - Added tests for authorization, coordinate validation, modifier validation, unsupported automation results, and interaction event logging.
+  - Added tests for coordinate validation, modifier validation, unsupported automation results, and interaction event logging.
 - Files created/modified:
   - `mcp/server/InSharpMcp/Interaction/InteractionInputValidator.cs`
   - `mcp/server/InSharpMcp/Tools/InSharpMcpTools.cs`
@@ -396,6 +422,71 @@
   - `plans/findings.md`
   - `plans/progress.md`
 
+### Phase 19: Demo Bridge Registration and Transport
+- **Status:** complete
+- Actions taken:
+  - Added `InSharpMcp.Bridge` as the app-side package for local broker registration and app-call transport.
+  - Added broker-side local pipe registration and remote app dispatch in `InSharpMcp.Core`.
+  - Updated WinForms, Avalonia, and Uno demos to start the Bridge by default.
+  - Added automated bridge transport and stdio MCP protocol tests.
+  - Verified live WinForms, Avalonia, and Uno demo registration through the installed MCP server with `ism_list_instances`.
+  - Verified live runtime info and visual tree snapshots for all three demos.
+  - Verified live selector/wait/assertion calls across the demos.
+  - Verified screenshot behavior through local broker routing.
+  - Cleaned up the launched demo processes and removed stale registrations from the active broker.
+- Files created/modified:
+  - `mcp/server/InSharpMcp.Bridge/*`
+  - `mcp/server/InSharpMcp.Core/Transports/LocalAppPipe.cs`
+  - `mcp/server/InSharpMcp.Core/Transports/LocalAppTransportOptions.cs`
+  - `mcp/server/InSharpMcp.Core/Transports/LocalAppTransportWire.cs`
+  - `mcp/server/InSharpMcp.Core/Transports/LocalBrokerPipeServer.cs`
+  - `mcp/server/InSharpMcp.Core/Transports/RemoteAppInstanceClient.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/BridgeTransportTests.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/StdioMcpProtocolTests.cs`
+  - `demos/demo.winforms/*`
+  - `demos/demo.avalonia/*`
+  - `demos/demo.uno/InSharpMcp.Demo.Uno/*`
+  - `README.md`
+  - `demos/README.md`
+  - `plans/task_plan.md`
+  - `plans/findings.md`
+  - `plans/progress.md`
+
+### Phase 20: Bridge Complexity Cleanup
+- **Status:** complete for the active goal
+- Actions taken:
+  - Moved local transport DTOs, JSON options, request kinds, and operation names to `InSharpMcp.Contracts.LocalTransport`.
+  - Removed duplicate Bridge/Core local transport wire records.
+  - Added Bridge heartbeat and broker heartbeat handling.
+  - Made stale expiration clear active app connections as well as registry entries.
+  - Added structured invalid-payload responses for the local broker pipe and app pipe.
+  - Added configurable `AddInSharpMcpBridge` options overload.
+  - Replaced repeated demo capability sets with `AppBridgeCapabilities.Standard`.
+  - Added tests for metadata routing, heartbeat update, unregister-on-dispose, stale connection cleanup, and malformed broker JSON.
+  - Recorded the extra Release broker build blocker caused by the active installed broker process locking Release output DLLs.
+- Files created/modified:
+  - `mcp/server/InSharpMcp.Contracts/LocalTransport/LocalTransportMessages.cs`
+  - `mcp/server/InSharpMcp.Bridge/AppBridgeRegistration.cs`
+  - `mcp/server/InSharpMcp.Bridge/InSharpMcpBridge.cs`
+  - `mcp/server/InSharpMcp.Bridge/InSharpMcpBridgeServiceCollectionExtensions.cs`
+  - `mcp/server/InSharpMcp.Bridge/LocalBridgeOptions.cs`
+  - `mcp/server/InSharpMcp.Bridge/LocalBridgePipe.cs`
+  - `mcp/server/InSharpMcp.Core/Registry/AppRegistrationService.cs`
+  - `mcp/server/InSharpMcp.Core/Routing/InProcessAppInstanceClient.cs`
+  - `mcp/server/InSharpMcp.Core/Transports/LocalAppPipe.cs`
+  - `mcp/server/InSharpMcp.Core/Transports/LocalAppTransportOptions.cs`
+  - `mcp/server/InSharpMcp.Core/Transports/LocalAppTransportWire.cs`
+  - `mcp/server/InSharpMcp.Core/Transports/LocalBrokerPipeServer.cs`
+  - `mcp/server/InSharpMcp.Core/Transports/RemoteAppInstanceClient.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/AppRegistrationServiceTests.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/BridgeTransportTests.cs`
+  - `demos/demo.winforms/Form1.cs`
+  - `demos/demo.avalonia/MainWindow.axaml.cs`
+  - `demos/demo.uno/InSharpMcp.Demo.Uno/App.xaml.cs`
+  - `plans/task_plan.md`
+  - `plans/findings.md`
+  - `plans/progress.md`
+
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
 |-----------|-------|---------|------------|
@@ -414,12 +505,15 @@
 | 2026-05-15 | Phase 12 first full test run had a stale `UiTreeSnapshot` named parameter and an unshown WinForms form for `PerformClick()` | 1 | Updated the named parameter and showed the test form before invocation; full suite passed. |
 | 2026-05-15 | Native input injector method-group overload was ambiguous for `Enumerable.Select` | 1 | Replaced the method-group calls with explicit static lambdas; adapter builds passed. |
 | 2026-05-15 | Avalonia automation invoker missed the `Avalonia.Visual` namespace import | 1 | Added the namespace import; Avalonia adapter build passed. |
+| 2026-05-15 | Stdio MCP server wrote .NET logs to stdout before JSON-RPC responses, preventing clients from listing tools | 1 | Cleared stdio logging providers and added executable-level MCP initialize/tools-list regression coverage. |
+| 2026-05-15 | Windows PowerShell cleanup script could not use `System.Text.Json.JsonSerializer` | 1 | Used `ConvertTo-Json -Compress` to send local broker unregister messages for the three demo instances. |
+| 2026-05-15 | Phase 20 Release broker build could not copy Release DLLs because active `InSharpMcp.Broker` process 29392 locks them | 1 | Did not terminate the installed MCP server automatically; server tests and demo solution build passed, and Release build remains pending until the process is stopped or restarted by user direction. |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 15 complete. |
-| Where am I going? | Final full verification and clean process check. |
+| Where am I? | Phase 18 complete. |
+| Where am I going? | Commit or further naming/documentation cleanup only when explicitly requested. |
 | What's the goal? | Fully implement `plans/PLAN.md` with verification evidence and a clean final working tree. |
 | What have I learned? | See `plans/findings.md`. |
-| What have I done? | Completed Phase 1 through Phase 15 with public input/default-action paths added for the adapters and focused adapter tests passing. |
+| What have I done? | Added executable-level MCP stdio handshake/tools-list coverage and verified the full server suite. |

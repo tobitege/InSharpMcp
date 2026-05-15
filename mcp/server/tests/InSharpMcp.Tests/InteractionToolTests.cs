@@ -2,33 +2,12 @@ using InSharpMcp.Concurrency;
 using InSharpMcp.Contracts;
 using InSharpMcp.Events;
 using InSharpMcp.Interaction;
-using InSharpMcp.Security;
 using InSharpMcp.Tools;
 
 namespace InSharpMcp.Tests;
 
 public sealed class InteractionToolTests
 {
-    [Fact]
-    public async Task PointerClick_RejectsMissingTokenForProtectedTool()
-    {
-        var client = ToolRoutingFixture.CreateClient(inputSimulator: new RecordingInputSimulator());
-        var router = ToolRoutingFixture.CreateRouter(client);
-
-        var result = await InSharpMcpTools.PointerClick(
-            router,
-            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new McpRequestAuthorizationResolver(),
-            new InteractionInputValidator(),
-            x: 1,
-            y: 1,
-            authorizationToken: null,
-            cancellationToken: CancellationToken.None);
-
-        Assert.False(result.Success);
-        Assert.Equal("unauthorized", result.ErrorCode);
-    }
-
     [Fact]
     public async Task PointerClick_RejectsNegativeCoordinates()
     {
@@ -37,12 +16,9 @@ public sealed class InteractionToolTests
 
         var result = await InSharpMcpTools.PointerClick(
             router,
-            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new McpRequestAuthorizationResolver(),
             new InteractionInputValidator(),
             x: -1,
             y: 1,
-            authorizationToken: "secret",
             cancellationToken: CancellationToken.None);
 
         Assert.False(result.Success);
@@ -60,11 +36,8 @@ public sealed class InteractionToolTests
 
         var result = await InSharpMcpTools.TypeText(
             router,
-            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new McpRequestAuthorizationResolver(),
             new InteractionInputValidator(),
             "hello",
-            authorizationToken: "secret",
             cancellationToken: CancellationToken.None);
 
         Assert.True(result.Success);
@@ -80,12 +53,9 @@ public sealed class InteractionToolTests
 
         var result = await InSharpMcpTools.KeyPress(
             router,
-            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new McpRequestAuthorizationResolver(),
             new InteractionInputValidator(),
             "A",
             ["unsupported"],
-            authorizationToken: "secret",
             cancellationToken: CancellationToken.None);
 
         Assert.False(result.Success);
@@ -100,10 +70,7 @@ public sealed class InteractionToolTests
 
         var result = await InSharpMcpTools.ElementPeerDefaultAction(
             router,
-            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new McpRequestAuthorizationResolver(),
             "missing",
-            authorizationToken: "secret",
             cancellationToken: CancellationToken.None);
 
         Assert.False(result.Success);

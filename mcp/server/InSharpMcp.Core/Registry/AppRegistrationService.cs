@@ -29,10 +29,25 @@ public sealed class AppRegistrationService
         return new AppRegistration(_registry, _connections, descriptor.InstanceId);
     }
 
+    public void Unregister(string instanceId)
+    {
+        _registry.Unregister(instanceId);
+        _connections?.Unregister(instanceId);
+    }
+
+    public bool TryHeartbeat(string instanceId, DateTimeOffset heartbeatAt) =>
+        _registry.TryHeartbeat(instanceId, heartbeatAt, out _);
+
     public IReadOnlyCollection<AppInstanceDescriptor> ExpireStale(DateTimeOffset now, AppRegistrationOptions? options = null)
     {
         var effectiveOptions = options ?? new AppRegistrationOptions();
-        return _registry.ExpireStale(now, effectiveOptions.StaleInstanceAge);
+        var expired = _registry.ExpireStale(now, effectiveOptions.StaleInstanceAge);
+        foreach (var instance in expired)
+        {
+            _connections?.Unregister(instance.InstanceId);
+        }
+
+        return expired;
     }
 }
 

@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 17: Rename core library for broker clarity
+Phase 18: MCP stdio protocol regression coverage
 
 ## Phases
 
@@ -23,9 +23,9 @@ Phase 17: Rename core library for broker clarity
 - [x] Implement concurrency options and UI operation queue
 - [x] Implement app registry, selector, and lifecycle primitives
 - [x] Implement DI-based tools for instance listing and runtime info
-- [x] Implement broker stdio/HTTP transport, authorization, and bounded concurrency
+- [x] Implement broker stdio/local-only HTTP transport and bounded concurrency
 - [x] Implement app-side registration/unregistration and stale expiration
-- [x] Add tests for discovery, registration, routing, authorization, limits, and runtime-info concurrency
+- [x] Add tests for discovery, registration, routing, local-only HTTP behavior, limits, and runtime-info concurrency
 - [x] Commit coherent safe-foundation slices as they pass verification
 - **Status:** complete
 
@@ -98,12 +98,12 @@ Phase 17: Rename core library for broker clarity
 
 ### Phase 10: Review-critical Remediation
 - [x] Add routed target dispatch for UI, screenshot, event-log, trace, assertion, and interaction tools
-- [x] Add transport-aware authorization for protected tools, including HTTP request token extraction
+- [x] Keep privacy-sensitive and interaction tools local and approval-gated at the MCP client level
 - [x] Add an app-instance client/connection layer so selected registry instances map to executable adapter operations
 - [x] Record trace entries from actual tool execution instead of requiring manual trace-store writes
 - [x] Ensure `ism_close` runs through the selected app UI operation path
 - [x] Fix Uno visual-tree limit enforcement for lookup and snapshot text caps
-- [x] Add tests proving routing, ambiguity/stale errors, HTTP/stdio auth behavior, trace recording, close queueing, and Uno bounds
+- [x] Add tests proving routing, ambiguity/stale errors, trace recording, close queueing, and Uno bounds
 - [x] Run full verification and commit coherent remediation slices
 - **Status:** complete
 
@@ -165,7 +165,7 @@ Phase 17: Rename core library for broker clarity
 ### Phase 16: Callable MCP Broker Executable
 - [x] Add an executable broker project that can be referenced from IDE MCP config
 - [x] Default the executable to stdio MCP transport
-- [x] Add CLI options for HTTP mode, token, loopback binding, and concurrency basics
+- [x] Add CLI options for stdio/HTTP mode and concurrency basics; HTTP is loopback-only
 - [x] Add the executable project to `mcp/server/InSharpMcp.sln`
 - [x] Document Codex/Cursor-style MCP config examples in `README.md`
 - [x] Build the broker executable and server solution
@@ -178,6 +178,39 @@ Phase 17: Rename core library for broker clarity
 - [x] Update README and implementation summary wording to distinguish `InSharpMcp.Core` from `InSharpMcp.Broker`
 - [x] Build/test after rename
 - **Status:** complete
+
+### Phase 18: MCP Stdio Protocol Regression Coverage
+- [x] Prevent non-protocol logging from writing to stdout for stdio MCP transport
+- [x] Add executable-level stdio MCP handshake and `tools/list` test
+- [x] Assert stdout contains JSON-RPC only during initialization and tool listing
+- [x] Build the broker executable through test project dependencies
+- [x] Verify the focused protocol test and full server test suite
+- **Status:** complete
+
+### Phase 19: Demo Bridge Registration and Transport
+- [x] Add an app-side `InSharpMcp.Bridge` package for local demo/app registration
+- [x] Keep broker-local pipe listener and remote app routing in `InSharpMcp.Core`
+- [x] Wire WinForms, Avalonia, and Uno demos to start the Bridge by default without `ISM_ENABLED`
+- [x] Keep demos referencing only their adapter package plus `InSharpMcp.Bridge`, not broker internals
+- [x] Add automated registration/transport coverage with a live local broker pipe and bridge host
+- [x] Verify the installed MCP broker lists all three live demos and routes runtime, visual tree, query, wait, and assertion tools to them
+- [x] Remove broker token auth; keep HTTP local-only and keep approval-sensitive tool semantics documented
+- [x] Update README and demo docs to describe the installable broker and app-side Bridge architecture
+- [x] Build/test the server solution, demo solution, and Release broker executable
+- **Status:** complete
+
+### Phase 20: Bridge Complexity Cleanup
+- [x] Move local broker/app wire messages and operation names into a single shared Contracts transport surface
+- [x] Replace duplicate Bridge/Core wire records with the shared transport messages
+- [x] Add Bridge heartbeat and broker heartbeat handling
+- [x] Expire stale registrations and remove their active routed connections
+- [x] Add structured bad-request handling for malformed local broker/app pipe payloads
+- [x] Add configurable `AddInSharpMcpBridge` options overload
+- [x] Remove repeated demo capability lists through shared Bridge capabilities
+- [x] Add focused tests for heartbeat, unregister, stale connection cleanup, metadata routing, and malformed broker-pipe JSON
+- [x] Run focused `InSharpMcp.Tests`, full `mcp/server/InSharpMcp.sln` tests, and demo solution build
+- [x] Record that Release broker rebuild is blocked while the active installed broker process locks `InSharpMcp.Contracts.dll` and `InSharpMcp.Core.dll`
+- **Status:** complete for the active complexity-cleanup goal
 
 ## Key Questions
 1. Which package-management style does this repository currently use?
@@ -195,6 +228,7 @@ Phase 17: Rename core library for broker clarity
 | Implement Avalonia/WinForms now that demos exist | The previous validation gate is satisfied by the Phase 11 demo hosts. |
 | Implement input only through native platform input APIs | Pointer/key/text paths now use Windows native input injection instead of fabricated framework events. |
 | Implement default actions only through public command/button contracts | Avalonia uses `ICommandSource.Command`, Uno uses `ButtonBase.Command`, and WinForms uses `IButtonControl.PerformClick()`. |
+| Test the actual MCP stdio executable, not only reflected tool metadata | Tool reflection cannot catch protocol corruption such as logging to stdout. The executable-level test now performs `initialize` and `tools/list` over stdio. |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -216,6 +250,7 @@ Phase 17: Rename core library for broker clarity
 | Native input injector method-group overload was ambiguous for `Enumerable.Select` | 1 | Replaced the method-group calls with explicit static lambdas. |
 | Avalonia automation invoker missed the `Avalonia.Visual` namespace import | 1 | Added the required `Avalonia` namespace import and rebuilt successfully. |
 | Broker command-line parser result used `Success` for both a record property and static factory | 1 | Renamed the static factory to `Ok`. |
+| Stdio MCP server wrote .NET logs to stdout before JSON-RPC responses, so clients could launch the process but fail to list tools | 1 | Cleared logging providers in `StdioBrokerHost` and added an executable-level stdio handshake/tools-list regression test. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.

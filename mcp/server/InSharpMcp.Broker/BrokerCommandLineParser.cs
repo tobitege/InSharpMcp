@@ -32,17 +32,6 @@ internal static class BrokerCommandLineParser
                     }
 
                     break;
-                case "--token":
-                    if (!TryReadValue(args, ref index, arg, out var token))
-                    {
-                        return BrokerCommandLineParseResult.Fail($"Missing value for {arg}.");
-                    }
-
-                    options = options with { SharedToken = token };
-                    break;
-                case "--allow-unauthenticated-http":
-                    options = options with { AllowUnauthenticatedHttp = true };
-                    break;
                 case "--http-port":
                     if (!TryReadInt(args, ref index, arg, out var port))
                     {
@@ -63,9 +52,6 @@ internal static class BrokerCommandLineParser
                     }
 
                     options = options with { HttpPath = path.StartsWith("/", StringComparison.Ordinal) ? path : $"/{path}" };
-                    break;
-                case "--http-any-host":
-                    options = options with { BindHttpToLoopbackOnly = false };
                     break;
                 case "--max-concurrent-calls":
                     if (!TryReadPositiveInt(args, ref index, arg, out var maxConcurrentCalls))

@@ -1,4 +1,8 @@
 using System;
+using System.Diagnostics;
+using InSharpMcp.Adapters.Uno;
+using InSharpMcp.Bridge;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Uno.Resizetizer;
 
@@ -6,6 +10,8 @@ namespace InSharpMcp.Demo.Uno;
 
 public partial class App : Application
 {
+    private ServiceProvider? _mcpServices;
+
     /// <summary>
     /// Initializes the singleton application object. This is the first line of authored code
     /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -49,6 +55,44 @@ public partial class App : Application
         MainWindow.SetWindowIcon();
         // Ensure the current window is active
         MainWindow.Activate();
+        _ = RegisterWithBrokerAsync(MainWindow);
+    }
+
+    private async Task RegisterWithBrokerAsync(Window window)
+    {
+        if (_mcpServices is not null)
+        {
+            return;
+        }
+
+        var services = new ServiceCollection();
+        services.AddInSharpMcpUnoAdapter(
+            window,
+            "InSharpMcp Uno Demo",
+            typeof(App).Assembly.GetName().Version?.ToString() ?? "0.0.0",
+            "Uno");
+        services.AddInSharpMcpBridge();
+        _mcpServices = services.BuildServiceProvider();
+
+        var registration = new AppBridgeRegistration(
+            AppId: "insharpmcp.demo.uno",
+            AppName: "InSharpMcp Uno Demo",
+            AdapterKind: "uno",
+            PlatformTarget: "Uno",
+            AppVersion: typeof(App).Assembly.GetName().Version?.ToString() ?? "0.0.0",
+            Capabilities: AppBridgeCapabilities.Standard,
+            InstanceId: $"uno-demo-{Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+
+        try
+        {
+            await _mcpServices.GetRequiredService<InSharpMcpBridge>()
+                .StartAsync(registration)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception)
+        {
+            Debug.WriteLine($"InSharpMcp demo registration failed: {exception.Message}");
+        }
     }
 
     /// <summary>

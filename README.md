@@ -50,7 +50,7 @@ This repository currently contains the core broker, shared contracts, Uno, Avalo
 
 The project is source-ready but not published as NuGet packages from this repository. Use project references while developing against it.
 
-The verified implementation includes the callable `InSharpMcp.Broker` executable, the reusable `InSharpMcp.Core` library, `InSharpMcp.Contracts`, `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, and `InSharpMcp.Adapters.WinForms`. The repository currently pins Uno Platform through `Uno.Sdk/6.5.33`. It pins Avalonia to `11.3.9`; the Avalonia adapter has also been compile-checked against Avalonia `12.0.3`, so the current implementation does not require separate v11 and v12 adapter source versions.
+The verified implementation includes the callable `InSharpMcp.Broker` executable, the reusable `InSharpMcp.Core` broker library, the app-side `InSharpMcp.Bridge`, `InSharpMcp.Contracts`, `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, and `InSharpMcp.Adapters.WinForms`. The repository currently pins Uno Platform through `Uno.Sdk/6.5.33`. It pins Avalonia to `11.3.9`; the Avalonia adapter has also been compile-checked against Avalonia `12.0.3`, so the current implementation does not require separate v11 and v12 adapter source versions.
 
 Pointer, keyboard, text input, and default actions are implemented where the adapters have validated public platform paths. Remaining `unsupported` results are specific backend or element-shape limits.
 
@@ -65,6 +65,7 @@ The server code lives under `mcp/server`.
 | `mcp/server/InSharpMcp.Contracts` | Shared result models, limit models, selectors, screenshots, traces, assertions, and adapter interfaces. |
 | `mcp/server/InSharpMcp.Core` | Reusable MCP core library: routing, registry, security, limits, event log, trace store, selectors, assertions, transports, and `ism_` tools. |
 | `mcp/server/InSharpMcp.Broker` | Command-line MCP broker executable for IDE/client MCP configuration. |
+| `mcp/server/InSharpMcp.Bridge` | App-side local bridge that registers a running app instance with the broker and carries UI operations back to the live adapter. |
 | `mcp/server/InSharpMcp.Adapters.Uno` | Uno/WinUI adapter for dispatcher, visual tree, metadata, DataContext, screenshots where supported, accessibility delegation, Windows input, and command-backed default action invocation. |
 | `mcp/server/InSharpMcp.Adapters.Avalonia` | Avalonia adapter for dispatcher, visual tree, metadata, DataContext, screenshots for measured controls, accessibility delegation, Windows input, and command-backed default action invocation. |
 | `mcp/server/InSharpMcp.Adapters.WinForms` | WinForms adapter for dispatcher, control tree, metadata, Tag-based DataContext, screenshots, accessibility delegation, Windows input, and button default action invocation. |
@@ -111,7 +112,7 @@ The core broker remains UI-framework-neutral. It knows how to select an app inst
 
 When exactly one compatible app instance is registered, tools can run without an explicit target. When more than one instance matches, InSharpMcp returns `ambiguous_target` instead of guessing. When a selected instance has no active client connection, it returns `stale_instance`.
 
-The current implementation provides in-process adapter building blocks. If your app process and broker process are separate, your host is responsible for providing the app-to-broker transport or bridge that registers an `IAppInstanceClient` with the broker. In short: run `InSharpMcp.Broker` from the IDE MCP config, and reference `InSharpMcp.Core` from host code that composes or extends the broker services.
+The broker process runs the MCP protocol interface. Apps do not expose MCP directly. A running app references `InSharpMcp.Bridge` plus its framework adapter, and the Bridge registers that live app instance with the broker over a local named pipe. The broker then routes MCP tool calls to that app through the Bridge.
 
 ## Starting the Broker
 
@@ -126,55 +127,49 @@ For IDE MCP clients such as Codex or Cursor, use the broker executable. The defa
 From a source checkout, the command form is:
 
 ```powershell
-dotnet run --project mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj -- --transport stdio --token replace-with-a-local-token
+dotnet run --project mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj -- --transport stdio
 ```
 
 `InSharpMcp.Broker` is also configured as a .NET tool project with the command name `insharp-mcp`. After packaging and installing it as a tool, the command becomes:
 
 ```powershell
-insharp-mcp --transport stdio --token replace-with-a-local-token
+insharp-mcp --transport stdio
 ```
 
 For local HTTP clients, run the same executable in HTTP mode:
 
 ```powershell
-dotnet run --project mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj -- --transport http --http-port 52001 --http-path /mcp --token replace-with-a-local-token
+dotnet run --project mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj -- --transport http --http-port 52001 --http-path /mcp
 ```
 
-HTTP binds to `127.0.0.1:52001` by default and maps the MCP endpoint at `/mcp`. Loopback binding is enabled by default.
+HTTP always binds to `127.0.0.1` and maps the MCP endpoint at `/mcp` by default. Remote HTTP clients are rejected.
 
 ## Registering an App Instance
 
-Adapter registration is normal dependency injection. Add the core services, add the adapter for your framework, register an `InProcessAppInstanceClient`, and then register a descriptor with `AppRegistrationService`.
+App registration is normal dependency injection. Add the adapter for your framework, add `InSharpMcp.Bridge`, and start the bridge with an `AppBridgeRegistration`. The demos do this by default so they are visible to an already-running broker without setting `ISM_ENABLED`.
 
 The exact window/control type depends on the adapter. A WinForms host can wire itself like this:
 
 ```csharp
 using InSharpMcp;
 using InSharpMcp.Adapters.WinForms;
-using InSharpMcp.Registry;
-using InSharpMcp.Routing;
+using InSharpMcp.Bridge;
 using Microsoft.Extensions.DependencyInjection;
 
 var services = new ServiceCollection();
-services.AddInSharpMcpCore();
 services.AddInSharpMcpWinFormsAdapter(
     form,
     appName: "Sample WinForms App",
     appVersion: "1.0.0",
     platformTarget: "WinForms");
-services.AddSingleton<InProcessAppInstanceClient>();
+services.AddInSharpMcpBridge();
 
 var provider = services.BuildServiceProvider();
-var instanceId = Guid.NewGuid().ToString("N");
-var descriptor = new AppInstanceDescriptor(
-    InstanceId: instanceId,
+var registration = new AppBridgeRegistration(
     AppId: "sample-winforms-app",
     AppName: "Sample WinForms App",
-    ProcessId: Environment.ProcessId,
     AdapterKind: "winforms",
     PlatformTarget: "WinForms",
-    OperatingSystem: Environment.OSVersion.Platform.ToString(),
     AppVersion: "1.0.0",
     Capabilities: new HashSet<string>(StringComparer.Ordinal)
     {
@@ -183,16 +178,12 @@ var descriptor = new AppInstanceDescriptor(
         "metadata",
         "screenshot",
         "accessibility"
-    },
-    Endpoint: $"inproc://{instanceId}",
-    RegisteredAt: DateTimeOffset.UtcNow,
-    LastHeartbeatAt: DateTimeOffset.UtcNow);
+    });
 
-var registration = provider.GetRequiredService<AppRegistrationService>()
-    .Register(descriptor, provider.GetRequiredService<InProcessAppInstanceClient>());
+await provider.GetRequiredService<InSharpMcpBridge>().StartAsync(registration);
 ```
 
-Dispose the returned registration when the host closes. That unregisters the app instance and removes the active client connection.
+Dispose the service provider when the host closes. That stops the Bridge and unregisters the app instance from the broker when possible.
 
 Avalonia hosts use `AddInSharpMcpAvaloniaAdapter(window, ...)`. Uno hosts use `AddInSharpMcpUnoAdapter(window, ...)`. WinForms hosts use `AddInSharpMcpWinFormsAdapter(form, ...)`.
 
@@ -212,7 +203,9 @@ Unsupported results are normal tool outcomes. They let MCP clients distinguish "
 
 Pointer, keyboard, text, and default-action tools are protected operations. They are routed through the selected app instance, run on the adapter dispatcher where UI state is needed, and use structured `ToolResult` outcomes.
 
-Pointer coordinates are adapter-root-relative. WinForms translates them with `Control.PointToScreen`. Avalonia translates them with Avalonia `PointToScreen`. Uno translates them through the Windows target's native HWND when available; Uno Desktop/Skia pointer clicks remain `unsupported` until a validated backend-specific screen-coordinate path exists.
+Pointer coordinates are adapter-root-relative, not raw desktop/screenshot coordinates. WinForms translates them with `Control.PointToScreen`. Avalonia translates them with Avalonia `PointToScreen`. Uno translates them through the Windows target's native HWND when available; Uno Desktop/Skia pointer clicks remain `unsupported` until a validated backend-specific screen-coordinate path exists.
+
+When a caller starts from visual evidence such as a screenshot or UI Automation `BoundingRectangle`, first convert the target screen point into the adapter root's client coordinate space. For WinForms, use the actual form handle with Win32 `ScreenToClient`; do not pass UIA screen coordinates directly, and do not rely on manual DPI division. A successful `ism_pointer_click` only means the input injector sent a click. Validate the intended effect with state inspection, a screenshot, an event, or a control-specific assertion.
 
 Key and text input use native Windows input APIs instead of fabricated framework events. Key presses accept a single alphanumeric character, `F1` through `F12`, or one of `enter`, `escape`, `tab`, `backspace`, `delete`, `space`, `arrowup`, `arrowdown`, `arrowleft`, `arrowright`, `home`, `end`, `pageup`, and `pagedown`. Modifiers are `alt`, `control`/`ctrl`, `shift`, and `meta`/`win`. Text input is capped by the interaction validator.
 
@@ -233,9 +226,7 @@ Command-launched MCP clients should point at the broker executable. From a sourc
         "mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj",
         "--",
         "--transport",
-        "stdio",
-        "--token",
-        "replace-with-a-local-token"
+        "stdio"
       ],
       "env": {
         "ISM_MAX_DEPTH": "20",
@@ -256,9 +247,7 @@ After the broker is packaged and installed as the `insharp-mcp` .NET tool, the s
       "command": "insharp-mcp",
       "args": [
         "--transport",
-        "stdio",
-        "--token",
-        "replace-with-a-local-token"
+        "stdio"
       ]
     }
   }
@@ -273,7 +262,6 @@ An HTTP MCP client can connect to the default local endpoint with a configuratio
     "insharp-mcp": {
       "url": "http://127.0.0.1:52001/mcp",
       "headers": {
-        "X-InSharpMcp-Token": "replace-with-a-local-token",
         "X-InSharpMcp-Max-Depth": "20",
         "X-InSharpMcp-Max-Nodes": "500",
         "X-InSharpMcp-Max-Text-Characters": "64000"
@@ -303,7 +291,7 @@ UI operations run through `IUiOperationQueue`. This keeps unrelated non-UI work 
 
 ## Security Model
 
-Protected tools require authorization by default when HTTP is enabled. The protected tools are:
+Some tools expose private app state or modify the running app. MCP clients should treat these as approval-gated actions:
 
 ```text
 ism_get_screenshot
@@ -315,9 +303,7 @@ ism_element_peer_default_action
 ism_close
 ```
 
-HTTP requests can provide the token with the `Authorization: Bearer ...` header, the `X-InSharpMcp-Token` header, the `authorizationToken` query parameter, or an explicit `authorizationToken` tool parameter. Stdio requests are resolved from the supplied token context.
-
-The HTTP host binds to loopback by default. Keep that default unless you have a specific reason to expose the endpoint more broadly.
+The broker does not use a shared token. Stdio is intended for IDE-launched local MCP clients, and HTTP is local-only: the broker binds to `127.0.0.1` and rejects non-loopback clients.
 
 ## Selecting a Target App
 
@@ -366,7 +352,7 @@ The tool surface uses the `ism_` prefix.
 | `ism_wait_for_element` | Poll for a matching element until a bounded timeout. |
 | `ism_get_accessibility_tree` | Return the adapter accessibility tree where available. |
 | `ism_get_event_log` | Read recent bounded, redacted tool and adapter events. |
-| `ism_pointer_click` | Request a pointer click. This is protected and may return `unsupported`. |
+| `ism_pointer_click` | Request a pointer click using adapter-root/client coordinates, not raw screen pixels. Convert UIA/screenshot points first and validate the resulting state. This may return `unsupported`. |
 | `ism_key_press` | Request a key press. This is protected and may return `unsupported`. |
 | `ism_type_text` | Request text input. This is protected and may return `unsupported`. |
 | `ism_element_peer_default_action` | Invoke a public default action where the adapter supports it. This is protected. |
@@ -405,13 +391,13 @@ After repeated builds, you can shut down .NET build servers with:
 dotnet build-server shutdown
 ```
 
-The existing tests cover routing, target ambiguity, stale instances, HTTP authorization, protected-tool ordering, limit clamping, UI queue behavior, selector matching, waits, event redaction, tracing, assertions, adapter contracts, and framework adapter smoke behavior.
+The existing tests cover routing, target ambiguity, stale instances, local broker transport, limit clamping, UI queue behavior, selector matching, waits, event redaction, tracing, assertions, adapter contracts, and framework adapter smoke behavior.
 
 ## Known Limitations
 
 InSharpMcp currently provides source projects, NuGet packages are planned to come shortly.
 
-Out-of-process app discovery and app-to-broker transport are host integration responsibilities in the current implementation. The broker and routing abstractions are present, but a production host still needs to decide how app instances discover the broker and register an active client connection across process boundaries.
+The included Bridge provides a local named-pipe app-to-broker transport for desktop apps on the same machine. Production hosts can use it directly or replace it with a custom transport if they need a different discovery, authentication, or deployment model.
 
 Uno Desktop/Skia screenshot and pointer-click paths are intentionally unsupported until validated backend-specific implementations exist. Keyboard/text input uses native Windows input where available. Default action invocation is limited to public command/button patterns: Uno `ButtonBase.Command`, Avalonia `ICommandSource.Command`, and WinForms `IButtonControl.PerformClick()`.
 

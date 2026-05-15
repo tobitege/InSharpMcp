@@ -1,6 +1,7 @@
 using InSharpMcp.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace InSharpMcp.Transports;
 
@@ -12,6 +13,7 @@ public static class StdioBrokerHost
     {
         var options = Configure(configure);
         var builder = Host.CreateApplicationBuilder();
+        builder.Logging.ClearProviders();
         builder.Services.AddInSharpMcpCore(options);
         builder.Services
             .AddMcpServer()

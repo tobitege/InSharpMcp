@@ -22,5 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\mcp\server\InSharpMcp.Adapters.Avalonia\InSharpMcp.Adapters.Avalonia.csproj" />
+    <ProjectReference Include="..\..\mcp\server\InSharpMcp.Bridge\InSharpMcp.Bridge.csproj" />
   </ItemGroup>
 </Project>

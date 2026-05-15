@@ -9,7 +9,7 @@
 - Tool names use the `ism_` prefix.
 - UI work must flow through adapter dispatchers and bounded UI operation queues.
 - Inspection tools must enforce depth, node count, text size, timeout, and cancellation bounds.
-- Protected/privacy-sensitive operations require authorization when HTTP is enabled.
+- Privacy-sensitive and interaction operations are local-only and should be approval-gated by MCP clients.
 - Implement and verify in coherent feature/step commits.
 - Use planning-with-files state under `plans`.
 
@@ -31,14 +31,14 @@
 - DataContext metadata is produced by a shared `DataContextMetadataFactory`, making redaction/cap behavior testable outside UI framework code.
 - Structured selectors are represented as JSON-bindable `ElementSelector` records and matched against bounded `UiTreeSnapshot` data in deterministic preorder.
 - Event log entries are bounded and redact sensitive data keys before storage.
-- Protected interaction tools now authorize through `McpAuthorization`, validate input before dispatch, run through the UI queue where applicable, and record interaction event-log entries.
+- Interaction tools validate input before dispatch, run through the UI queue where applicable, and record interaction event-log entries.
 - Trace start/stop uses a bounded in-memory trace store and assertion helpers return structured pass/fail `AssertionResult` data without throwing for normal failures.
 - Phase 8 recorded the additional-adapter validation gate. Phase 11 and Phase 12 later resolved it by adding demo hosts and implementing the Avalonia and WinForms adapters.
 - Final verification passed with 56 tests. `plans/IMPLEMENTATION_SUMMARY.md` maps the implemented scope and validation-gated scope.
-- Follow-up review found the prior completion state was premature: most tools bypass target selection, HTTP authorization is not transport-aware, registered endpoints are not mapped to executable app operations, traces are not populated by real tool execution, `ism_close` bypasses the queue, and Uno lookup/text limits are incomplete.
+- Follow-up review found the prior completion state was premature: most tools bypass target selection, registered endpoints are not mapped to executable app operations, traces are not populated by real tool execution, `ism_close` bypasses the queue, and Uno lookup/text limits are incomplete.
 - Tool entrypoints now route through `AppInstanceRouter` and `IAppInstanceClient`, which maps selected registry descriptors to executable app operations and returns `ambiguous_target` or `stale_instance` before dispatch.
-- Protected tools now use `McpRequestAuthorizationResolver`, which derives HTTP vs stdio context and extracts bearer/header/query tokens for HTTP requests.
-- Protected tools authorize before target selection, so unauthenticated callers cannot use protected operations to probe registered or ambiguous targets.
+- Broker shared-token authorization was removed; HTTP is loopback-only and rejects non-loopback clients.
+- Approval-sensitive tools select targets through the same local broker routing path as other tools.
 - Trace and event recording now happens around actual selected tool execution; `ism_start_trace`/`ism_stop_trace` are target-scoped.
 - Uno visual-tree traversal now uses a shared `NodeVisitBudget` so node limits are consumed globally across sibling branches, and snapshot node metadata uses the caller's text limit instead of default limits.
 - New demo-app goal targets the three planned environments in `plans/PLAN.md`: `demos/demo.uno`, `demos/demo.avalonia`, and `demos/demo.winforms`.
@@ -56,7 +56,7 @@
 | Decision | Rationale |
 |----------|-----------|
 | Use the existing repository structure where possible before adding new solution files | The implementation should match repo conventions rather than inventing structure prematurely. |
-| Start with Phase 1 safe-foundation slices | Later adapters and tools depend on shared contracts, limits, registry, auth, concurrency, and host structure. |
+| Start with Phase 1 foundation slices | Later adapters and tools depend on shared contracts, limits, registry, concurrency, and host structure. |
 | Commit planning files as the first step if tests/build discovery does not reveal an immediate blocker | The user requested frequent commits, and planning state is a coherent setup step. |
 | Scaffold a new .NET solution using the `mcp/server` structure from `plans/PLAN.md` | No existing project structure is present, and the plan specifies the target layout. |
 | Use central package management | The repository is greenfield and central package management keeps project files versionless as requested by `plans/PLAN.md`. |
@@ -87,7 +87,7 @@
 | Visual-tree tool test forgot policy minimum clamping for `MaxTextCharacters`. | Corrected the expected value to `1024`. |
 | Non-Windows screenshot branch returned the wrong type from an async method. | Returned `ScreenshotResult` directly. |
 | Accessibility tool test mixed named and positional arguments. | Changed the cancellation token argument to named form. |
-| Review found missing routed app execution and auth integration. | Added Phase 10 remediation scope before code changes. |
+| Review found missing routed app execution. | Added Phase 10 remediation scope before code changes. |
 | Parallel adapter builds locked the shared contracts output. | Rebuilt sequentially and kept later verification commands sequential. |
 | WinForms `PerformClick()` test did not fire before the form was visible. | Updated the STA test to show the form and pump events before invoking the default action. |
 
@@ -105,9 +105,9 @@
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 53 tests after adding interaction tools.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 56 tests after adding trace start/stop and assertion helpers.
 - Final `dotnet test mcp/server/InSharpMcp.sln` passed with 56 tests.
-- `dotnet test mcp/server/InSharpMcp.sln` passed with 62 tests after routed tool dispatch, transport-aware auth, trace recording, and close queue regression coverage.
+- `dotnet test mcp/server/InSharpMcp.sln` passed with 62 tests after routed tool dispatch, trace recording, and close queue regression coverage.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 63 tests after fixing Uno traversal/text-limit handling and adding `NodeVisitBudget` coverage.
-- `dotnet test mcp/server/InSharpMcp.sln` passed with 64 tests after proving protected tools authorize before target selection.
+- `dotnet test mcp/server/InSharpMcp.sln` passed with 64 tests after target-routing regression coverage.
 - Final Phase 10 `dotnet test mcp/server/InSharpMcp.sln` passed with 64 tests.
 - `dotnet build demos/demo.avalonia/InSharpMcp.Demo.Avalonia.csproj` passed.
 - `dotnet build demos/demo.winforms/InSharpMcp.Demo.WinForms.csproj` passed.
@@ -129,9 +129,9 @@
 ## README Source Notes
 - There is no root `README.md` yet.
 - The public tool set currently contains 20 `ism_` tools.
-- The broker exposes stdio and HTTP host wrappers. HTTP defaults to `127.0.0.1:52001` and `/mcp`.
+- The broker exposes stdio and HTTP host wrappers. HTTP binds to `127.0.0.1:52001` and `/mcp`.
 - MCP startup is explicitly gated by `ISM_ENABLED=1`.
-- Protected tools are `ism_get_screenshot`, `ism_get_element_datacontext`, `ism_pointer_click`, `ism_key_press`, `ism_type_text`, `ism_element_peer_default_action`, and `ism_close`.
+- Approval-sensitive tools are `ism_get_screenshot`, `ism_get_element_datacontext`, `ism_pointer_click`, `ism_key_press`, `ism_type_text`, `ism_element_peer_default_action`, and `ism_close`.
 - Client-configurable inspection limit keys are `ISM_MAX_DEPTH`, `ISM_MAX_NODES`, `ISM_MAX_TEXT_CHARACTERS`, `X-InSharpMcp-Max-Depth`, `X-InSharpMcp-Max-Nodes`, and `X-InSharpMcp-Max-Text-Characters`.
 - Current adapter packages provide in-process adapter building blocks. An app instance is represented by an `AppInstanceDescriptor` and an active `IAppInstanceClient`; external app-to-broker discovery/transport is still a host integration concern.
 
@@ -145,3 +145,29 @@
 - The old `mcp/server/InSharpMcp` project name was confusing after adding `InSharpMcp.Broker`, because the runnable MCP server is the broker executable.
 - The reusable library project is now `mcp/server/InSharpMcp.Core/InSharpMcp.Core.csproj`.
 - The source namespace remains `InSharpMcp` for API continuity; the package/project identity is `InSharpMcp.Core`.
+
+## MCP Stdio Protocol Regression
+- The MCP server executable must keep stdout reserved for JSON-RPC protocol messages when running stdio transport.
+- `StdioBrokerHost` previously allowed default .NET logging providers, which wrote startup/request logs to stdout and corrupted the MCP stdio stream.
+- Reflection-based tool catalog tests were insufficient because they proved attributes existed but did not prove an IDE/client could complete `initialize` and `tools/list`.
+- `StdioMcpProtocolTests` now launches the built `InSharpMcp.Broker` executable, performs MCP `initialize`, sends `notifications/initialized`, calls `tools/list`, asserts 20 tools are returned, and fails if any stdout line is not JSON.
+
+## Demo Bridge Registration and Transport
+- `InSharpMcp.Bridge` is the app-side package. Demos reference their framework adapter plus `InSharpMcp.Bridge`; the installable MCP server remains `InSharpMcp.Broker`.
+- `InSharpMcp.Core` owns the broker-local named pipe listener and routes registered live app instances through `RemoteAppInstanceClient`.
+- WinForms, Avalonia, and Uno demos start the Bridge by default during normal window startup and do not require `ISM_ENABLED`.
+- Live MCP verification through the installed broker listed all three demos: `winforms-demo-32636`, `avalonia-demo-14124`, and `uno-demo-20012`.
+- Live `ism_get_runtime_info` and `ism_visualtree_snapshot` succeeded for WinForms, Avalonia, and Uno through the broker-to-Bridge path.
+- Live selector/wait/assertion checks succeeded: WinForms `ism_query_elements` matched `PrimaryActionButton`; Avalonia `ism_wait_for_element` matched `DemoMenu`; Uno `ism_assert_element_exists` matched `MainPage`.
+- Screenshot remains routed through the selected local app instance.
+- Demo cleanup killed the launched processes, then stale registrations were removed through the local broker pipe. A Windows PowerShell cleanup attempt using `System.Text.Json` failed because that type is not available in Windows PowerShell 5.1; `ConvertTo-Json` succeeded.
+
+## Bridge Complexity Cleanup
+- The local broker/app pipe DTOs and operation names now live once in `InSharpMcp.Contracts.LocalTransport`; Bridge and Core use the same types instead of duplicate record definitions.
+- The Bridge now sends periodic heartbeat requests after registration. The broker updates `LastHeartbeatAt` and periodically expires stale app instances.
+- Stale expiration now removes both the registry descriptor and the active `AppInstanceConnectionRegistry` entry, so expired instances stop routing as well as listing.
+- The broker pipe now returns a structured failed response for malformed JSON instead of letting the handler task fault silently.
+- `AddInSharpMcpBridge` now supports configuring `LocalBridgeOptions` through DI.
+- Demos now share `AppBridgeCapabilities.Standard` instead of repeating the same capability list three times.
+- Focused tests now cover heartbeat updates, unregister-on-dispose, stale connection removal, non-visual metadata routing through the Bridge, and malformed broker-pipe JSON.
+- Release broker build is currently blocked by an active installed `InSharpMcp.Broker` process locking the Release output DLLs. The full server test suite and demo solution build pass.

@@ -1,5 +1,6 @@
 using InSharpMcp.Concurrency;
 using InSharpMcp.Contracts;
+using InSharpMcp.Contracts.LocalTransport;
 using InSharpMcp.Tracing;
 
 namespace InSharpMcp.Routing;
@@ -42,7 +43,7 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
 
     public Task<ToolResult> GetVisualTreeSnapshotAsync(ToolLimits limits, CancellationToken cancellationToken) =>
         RunUiAsync(
-            "visualtree_snapshot",
+            LocalAppOperation.VisualTreeSnapshot,
             token => _treeInspector.GetVisualTreeSnapshotAsync(limits, token),
             limits,
             cancellationToken);
@@ -52,7 +53,7 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
         ToolLimits limits,
         CancellationToken cancellationToken) =>
         RunUiAsync(
-            "get_element_metadata",
+            LocalAppOperation.GetElementMetadata,
             token => _treeInspector.GetElementMetadataAsync(elementIdentifier, limits, token),
             limits,
             cancellationToken);
@@ -62,14 +63,14 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
         ToolLimits limits,
         CancellationToken cancellationToken) =>
         RunUiAsync(
-            "get_element_datacontext",
+            LocalAppOperation.GetElementDataContext,
             token => _treeInspector.GetElementDataContextAsync(elementIdentifier, limits, token),
             limits,
             cancellationToken);
 
     public Task<ScreenshotResult> CaptureScreenshotAsync(CancellationToken cancellationToken) =>
         _uiQueue.RunAsync(
-            "get_screenshot",
+            LocalAppOperation.GetScreenshot,
             async token =>
             {
                 var result = await _screenshotProvider.CaptureScreenshotAsync(token).ConfigureAwait(false);
@@ -92,14 +93,14 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
 
     public Task<ToolResult> GetAccessibilityTreeAsync(ToolLimits limits, CancellationToken cancellationToken) =>
         RunUiAsync(
-            "get_accessibility_tree",
+            LocalAppOperation.GetAccessibilityTree,
             token => _accessibilityTreeProvider.GetAccessibilityTreeAsync(limits, token),
             limits,
             cancellationToken);
 
     public Task<ToolResult> PointerClickAsync(double x, double y, CancellationToken cancellationToken) =>
         RunUiAsync(
-            "pointer_click",
+            LocalAppOperation.PointerClick,
             token => _inputSimulator.PointerClickAsync(x, y, token),
             new ToolLimits(),
             cancellationToken);
@@ -109,28 +110,28 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
         IReadOnlyList<string> modifiers,
         CancellationToken cancellationToken) =>
         RunUiAsync(
-            "key_press",
+            LocalAppOperation.KeyPress,
             token => _inputSimulator.KeyPressAsync(key, modifiers, token),
             new ToolLimits(),
             cancellationToken);
 
     public Task<ToolResult> TypeTextAsync(string text, CancellationToken cancellationToken) =>
         RunUiAsync(
-            "type_text",
+            LocalAppOperation.TypeText,
             token => _inputSimulator.TypeTextAsync(text, token),
             new ToolLimits(),
             cancellationToken);
 
     public Task<ToolResult> InvokeDefaultActionAsync(string elementIdentifier, CancellationToken cancellationToken) =>
         RunUiAsync(
-            "element_peer_default_action",
+            LocalAppOperation.ElementPeerDefaultAction,
             token => _automationPeerInvoker.InvokeDefaultActionAsync(elementIdentifier, token),
             new ToolLimits(),
             cancellationToken);
 
     public Task<ToolResult> CloseAsync(CancellationToken cancellationToken) =>
         RunUiAsync(
-            "close",
+            LocalAppOperation.Close,
             _appProvider.CloseAsync,
             new ToolLimits(),
             cancellationToken);

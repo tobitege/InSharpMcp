@@ -1,9 +1,9 @@
+using System.ComponentModel;
 using InSharpMcp.Contracts;
 using InSharpMcp.Interaction;
 using InSharpMcp.Limits;
 using InSharpMcp.Registry;
 using InSharpMcp.Routing;
-using InSharpMcp.Security;
 using InSharpMcp.Selectors;
 using ModelContextProtocol.Server;
 
@@ -106,29 +106,16 @@ public sealed class InSharpMcpTools
             cancellationToken);
     }
 
-    [McpServerTool(Name = "ism_get_element_datacontext")]
+    [McpServerTool(Name = "ism_get_element_datacontext", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     public static Task<ToolResult> GetElementDataContext(
         AppInstanceRouter router,
         ToolLimitPolicyEvaluator limitPolicy,
-        McpAuthorization authorization,
-        McpRequestAuthorizationResolver authorizationResolver,
         string elementIdentifier,
         AppTargetSelector? target = null,
         int? maxNodes = null,
         int? maxTextCharacters = null,
-        string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = AuthorizeProtected(
-            authorization,
-            authorizationResolver,
-            "ism_get_element_datacontext",
-            authorizationToken);
-        if (!authorized.Success)
-        {
-            return Task.FromResult(authorized);
-        }
-
         var route = router.Select(target);
         if (!route.Succeeded)
         {
@@ -144,25 +131,12 @@ public sealed class InSharpMcpTools
             cancellationToken);
     }
 
-    [McpServerTool(Name = "ism_get_screenshot")]
+    [McpServerTool(Name = "ism_get_screenshot", ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     public static async Task<ScreenshotResult> GetScreenshot(
         AppInstanceRouter router,
-        McpAuthorization authorization,
-        McpRequestAuthorizationResolver authorizationResolver,
         AppTargetSelector? target = null,
-        string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = AuthorizeProtected(
-            authorization,
-            authorizationResolver,
-            "ism_get_screenshot",
-            authorizationToken);
-        if (!authorized.Success)
-        {
-            return ToScreenshotResult(authorized);
-        }
-
         var route = router.Select(target);
         if (!route.Succeeded)
         {
@@ -298,24 +272,18 @@ public sealed class InSharpMcpTools
         return ToolResult.Ok("Event log returned.", events);
     }
 
-    [McpServerTool(Name = "ism_pointer_click")]
+    [McpServerTool(Name = "ism_pointer_click", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
+    [Description("Send a pointer click using coordinates relative to the selected adapter root/client area. Do not pass screenshot or UI Automation screen coordinates directly; convert screen points to adapter/client coordinates first.")]
     public static Task<ToolResult> PointerClick(
         AppInstanceRouter router,
-        McpAuthorization authorization,
-        McpRequestAuthorizationResolver authorizationResolver,
         InteractionInputValidator validator,
+        [Description("X coordinate relative to the selected adapter root/client area, not a raw screen pixel coordinate.")]
         double x,
+        [Description("Y coordinate relative to the selected adapter root/client area, not a raw screen pixel coordinate.")]
         double y,
         AppTargetSelector? target = null,
-        string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_pointer_click", authorizationToken);
-        if (!authorized.Success)
-        {
-            return Task.FromResult(authorized);
-        }
-
         var route = router.Select(target);
         if (!route.Succeeded)
         {
@@ -336,24 +304,15 @@ public sealed class InSharpMcpTools
             cancellationToken);
     }
 
-    [McpServerTool(Name = "ism_key_press")]
+    [McpServerTool(Name = "ism_key_press", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     public static Task<ToolResult> KeyPress(
         AppInstanceRouter router,
-        McpAuthorization authorization,
-        McpRequestAuthorizationResolver authorizationResolver,
         InteractionInputValidator validator,
         string key,
         string[]? modifiers = null,
         AppTargetSelector? target = null,
-        string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_key_press", authorizationToken);
-        if (!authorized.Success)
-        {
-            return Task.FromResult(authorized);
-        }
-
         var route = router.Select(target);
         if (!route.Succeeded)
         {
@@ -375,23 +334,14 @@ public sealed class InSharpMcpTools
             cancellationToken);
     }
 
-    [McpServerTool(Name = "ism_type_text")]
+    [McpServerTool(Name = "ism_type_text", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     public static Task<ToolResult> TypeText(
         AppInstanceRouter router,
-        McpAuthorization authorization,
-        McpRequestAuthorizationResolver authorizationResolver,
         InteractionInputValidator validator,
         string text,
         AppTargetSelector? target = null,
-        string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_type_text", authorizationToken);
-        if (!authorized.Success)
-        {
-            return Task.FromResult(authorized);
-        }
-
         var route = router.Select(target);
         if (!route.Succeeded)
         {
@@ -412,26 +362,13 @@ public sealed class InSharpMcpTools
             cancellationToken);
     }
 
-    [McpServerTool(Name = "ism_element_peer_default_action")]
+    [McpServerTool(Name = "ism_element_peer_default_action", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     public static Task<ToolResult> ElementPeerDefaultAction(
         AppInstanceRouter router,
-        McpAuthorization authorization,
-        McpRequestAuthorizationResolver authorizationResolver,
         string elementIdentifier,
         AppTargetSelector? target = null,
-        string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = AuthorizeProtected(
-            authorization,
-            authorizationResolver,
-            "ism_element_peer_default_action",
-            authorizationToken);
-        if (!authorized.Success)
-        {
-            return Task.FromResult(authorized);
-        }
-
         var route = router.Select(target);
         if (!route.Succeeded)
         {
@@ -446,21 +383,12 @@ public sealed class InSharpMcpTools
             cancellationToken);
     }
 
-    [McpServerTool(Name = "ism_close")]
+    [McpServerTool(Name = "ism_close", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     public static Task<ToolResult> Close(
         AppInstanceRouter router,
-        McpAuthorization authorization,
-        McpRequestAuthorizationResolver authorizationResolver,
         AppTargetSelector? target = null,
-        string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_close", authorizationToken);
-        if (!authorized.Success)
-        {
-            return Task.FromResult(authorized);
-        }
-
         var route = router.Select(target);
         if (!route.Succeeded)
         {
@@ -684,16 +612,6 @@ public sealed class InSharpMcpTools
                 ["success"] = result.Success.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["errorCode"] = result.ErrorCode ?? string.Empty,
             }));
-    }
-
-    private static ToolResult AuthorizeProtected(
-        McpAuthorization authorization,
-        McpRequestAuthorizationResolver authorizationResolver,
-        string toolName,
-        string? authorizationToken)
-    {
-        var context = authorizationResolver.Resolve(authorizationToken);
-        return authorization.AuthorizeTool(toolName, context.TransportKind, context.AuthorizationToken);
     }
 
     private static ScreenshotResult ToScreenshotResult(ToolResult result) =>

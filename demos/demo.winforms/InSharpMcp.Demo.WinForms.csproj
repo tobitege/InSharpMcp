@@ -14,5 +14,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\mcp\server\InSharpMcp.Adapters.WinForms\InSharpMcp.Adapters.WinForms.csproj" />
+    <ProjectReference Include="..\..\mcp\server\InSharpMcp.Bridge\InSharpMcp.Bridge.csproj" />
   </ItemGroup>
 </Project>

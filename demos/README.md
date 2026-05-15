@@ -39,4 +39,6 @@ Each demo includes:
 
 ## MCP Notes
 
-MCP remains disabled by default. These apps are demo hosts for validating adapter behavior manually; enable MCP integration only in explicit host wiring so normal app startup remains unchanged.
+The demos enable the InSharpMcp Bridge by default. Start the InSharpMcp MCP server first, then start a demo. The demo registers itself with the broker over the local Bridge pipe, so `ism_list_instances` should show the running demo and inspection tools can target it.
+
+The Bridge is app-side hosting code. The demos reference their framework adapter and `InSharpMcp.Bridge`; they do not reference broker internals from `InSharpMcp.Core`.

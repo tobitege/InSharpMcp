@@ -29,8 +29,9 @@ without changes to the MCP host.
 5. Every tool that touches UI state must run through the target app adapter's UI dispatcher.
 6. Every inspection tool must have hard bounds for depth, node count, output size,
    and timeout.
-7. Potentially destructive or privacy-sensitive tools require authorization when
-   HTTP is enabled: close, click, key press, type text, screenshot, and DataContext
+7. Potentially destructive or privacy-sensitive tools are exposed only through
+   local MCP transports and should be treated as approval-gated actions by MCP
+   clients: close, click, key press, type text, screenshot, and DataContext
    inspection.
 8. The server must support multiple concurrent MCP calls. Non-UI work can run in
    parallel; UI work must be coordinated through the adapter dispatcher without
@@ -91,10 +92,6 @@ mcp/server/
       InSharpMcpConcurrencyOptions.cs
       IUiOperationQueue.cs
       UiOperationQueue.cs
-    Security/
-      McpAccessOptions.cs
-      McpAuthorization.cs
-
   InSharpMcp.Adapters.Uno/
     InSharpMcp.Adapters.Uno.csproj
     UnoAppProvider.cs
@@ -395,7 +392,7 @@ Validation requirements:
 - return explicit unsupported results where a platform adapter cannot implement a tool
 - use cancellation tokens and dispatcher timeouts for UI operations
 - never store per-call state in static mutable fields
-- allow concurrent calls with isolated limits, authorization context, and cancellation
+- allow concurrent calls with isolated limits and cancellation
 - resolve target app instances through the broker registry before dispatch
 - reject ambiguous target selection instead of guessing
 
@@ -493,7 +490,6 @@ Trace and event storage:
 
 ```text
 <user-settings>/InSharpMcp/
-  tokens/
   instances/<appId>/<instanceId>/
   traces/<appId>/<instanceId>/<traceId>/
   events/<appId>/<instanceId>/
@@ -581,8 +577,8 @@ Identity defaults:
 
 - `AppId`: stable UUID stored in the app settings folder.
 - `InstanceId`: composed from `AppId` and process ID.
-- Multiple instances of the same app share the same `AppId`, app settings folder,
-  and token policy, but receive different `InstanceId` values.
+- Multiple instances of the same app share the same `AppId` and app settings
+  folder, but receive different `InstanceId` values.
 
 ### App-Side Endpoint
 
@@ -622,17 +618,9 @@ Selection rules:
 
 ### Broker Transport Security
 
-For stdio, the MCP client has already launched the broker process, but protected
-tools still require the configured policy because the broker can control running
-apps. For HTTP, bind to loopback by default and require a token unless explicitly
-configured otherwise for local development.
-
-Token policy:
-
-- Store the app token in the user's app settings folder.
-- Multiple instances of the same app share the same token and app settings.
-- The broker may issue or validate tokens, but token persistence remains
-  app-settings based.
+For stdio, the MCP client has already launched the broker process. For HTTP, the
+broker is local-only: bind to loopback and reject non-loopback clients. The
+broker does not use shared-token authentication.
 
 ---
 
@@ -646,7 +634,7 @@ Concurrency is part of the contract, not an implementation detail.
 - The MCP host must not use static mutable per-call state.
 - Tool services should be registered with lifetimes that are safe for concurrent
   calls.
-- Per-request data such as authorization context, limits, and cancellation tokens
+- Per-request data such as limits and cancellation tokens
   must stay local to the call.
 - Long-running calls must not block unrelated runtime-info or metadata calls.
 - Shared adapter state must be protected with explicit synchronization.
@@ -696,13 +684,10 @@ Security is Phase 1, not an open question.
 
 - disabled by default
 - loopback-only HTTP binding
-- token required for HTTP unless `ISM_ALLOW_UNAUTHENTICATED=1`
 - deny remote hosts by default
 - no CORS unless configured
-- store the shared app token in the user's app settings folder
-- multiple instances of the same app share the same app settings token
 - redact sensitive values in DataContext output
-- log tool name, caller transport, success/failure, and error code
+- log tool name, success/failure, and error code
 - log target `appId` and `instanceId` for broker-routed calls
 - client-configured inspection limits can only affect bounded output size and
   must be clamped by server policy
@@ -714,12 +699,12 @@ Security is Phase 1, not an open question.
 | runtime info | allowed when MCP enabled |
 | visual tree snapshot | allowed when MCP enabled, bounded |
 | element metadata | allowed when MCP enabled, bounded |
-| screenshot | token required |
-| DataContext inspection | token required |
-| pointer click | token required |
-| key press/type text | token required |
-| automation peer default action | token required |
-| close | token required |
+| screenshot | client approval recommended |
+| DataContext inspection | client approval recommended |
+| pointer click | client approval recommended |
+| key press/type text | client approval recommended |
+| automation peer default action | client approval recommended |
+| close | client approval recommended |
 
 ---
 
@@ -916,7 +901,6 @@ Broker startup sketch:
 await InSharpMcpBrokerHost.RunStdioAsync(
     configure: options =>
     {
-        options.RequireTokenForProtectedTools = true;
         options.MaxRegisteredInstances = 64;
     },
     cancellationToken);
@@ -942,7 +926,6 @@ if (InSharpMcpStartupOptions.IsEnabled(configuration))
             RegisteredAt: DateTimeOffset.UtcNow),
         configureEndpoint: options =>
         {
-            options.RequireBrokerToken = true;
             options.BindToLoopbackOnly = true;
         },
         cancellationToken);
@@ -968,9 +951,9 @@ expire stale instances that stop heartbeating.
 7. Implement `InSharpMcpConcurrencyOptions` and `IUiOperationQueue`.
 8. Implement `AppInstanceDescriptor`, `AppInstanceRegistry`, and `AppInstanceSelector`.
 9. Implement DI-based `InSharpMcpTools` for listing instances and runtime info only.
-10. Implement broker stdio transport, optional broker HTTP transport, token authorization, and bounded concurrency.
+10. Implement broker stdio transport, optional local-only broker HTTP transport, and bounded concurrency.
 11. Implement app-side registration/unregistration and stale-instance expiration.
-12. Add in-memory, stdio, or HTTP tests that prove tool registration, instance registration, target routing, authorization behavior, limit clamping, and concurrent runtime-info calls.
+12. Add in-memory, stdio, or HTTP tests that prove tool registration, instance registration, target routing, local-only HTTP behavior, limit clamping, and concurrent runtime-info calls.
 
 ### Phase 2 - Adapter Contract Harness
 
@@ -1007,8 +990,8 @@ expire stale instances that stop heartbeating.
 31. Implement Windows pointer/key/text input only through proven platform APIs.
 32. Return structured unsupported for Desktop/Skia input until a validated backend path exists.
 33. Implement automation peer default action only through public invokable patterns.
-34. Add optional before/after screenshot capture for protected interaction tools.
-35. Add tests for authorization, validation, unsupported paths, cancellation, serialized input operations, and trace entries around interactions.
+34. Add optional before/after screenshot capture for interaction tools.
+35. Add tests for validation, unsupported paths, cancellation, serialized input operations, and trace entries around interactions.
 
 ### Phase 7 - Tracing and Assertions
 
@@ -1030,7 +1013,7 @@ expire stale instances that stop heartbeating.
 Required tests:
 
 - tool discovery exposes the expected `ism_` names
-- unauthorized HTTP calls are rejected for protected tools
+- HTTP binds to loopback and rejects non-loopback clients
 - app instances can register and unregister with the broker
 - multiple instances with the same `appId` receive different `instanceId` values
 - multiple apps using the same adapter kind can be registered simultaneously
@@ -1043,7 +1026,7 @@ Required tests:
 - valid client limit config changes effective `MaxDepth`, `MaxNodes`, and `MaxTextCharacters`
 - excessive client limit config is clamped to server maximums
 - invalid client limit config falls back to defaults and logs a warning
-- client limit config cannot change timeout, queue timeout, auth, binding, CORS, or transport settings
+- client limit config cannot change timeout, queue timeout, binding, CORS, or transport settings
 - multiple runtime-info calls execute concurrently
 - concurrent UI calls queue with bounded wait and isolated cancellation
 - a timed-out UI call does not cancel unrelated calls
@@ -1068,7 +1051,7 @@ Manual verification:
 - host app launches normally with MCP disabled.
 - host app registers with the broker only when explicitly enabled.
 - MCP client can list instances and call runtime/visual-tree tools on a selected target.
-- Protected tools require the configured token.
+- Privacy-sensitive and interaction tools require explicit MCP client approval.
 - two instances of the same app can be selected separately.
 - two different apps using the same adapter can be selected separately.
 - Desktop/Skia returns correct support/unsupported results per implemented adapter.

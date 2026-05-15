@@ -5,11 +5,9 @@ using InSharpMcp.Interaction;
 using InSharpMcp.Limits;
 using InSharpMcp.Registry;
 using InSharpMcp.Routing;
-using InSharpMcp.Security;
 using InSharpMcp.Selectors;
 using InSharpMcp.Tools;
 using InSharpMcp.Tracing;
-using Microsoft.AspNetCore.Http;
 
 namespace InSharpMcp.Tests;
 
@@ -76,27 +74,7 @@ public sealed class RoutedToolRegressionTests
     }
 
     [Fact]
-    public async Task PointerClick_AcceptsHttpBearerTokenFromRequestContext()
-    {
-        var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers.Authorization = "Bearer secret";
-        var accessor = new HttpContextAccessor { HttpContext = httpContext };
-        var router = ToolRoutingFixture.CreateRouter(ToolRoutingFixture.CreateClient());
-
-        var result = await InSharpMcpTools.PointerClick(
-            router,
-            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new McpRequestAuthorizationResolver(accessor),
-            new InteractionInputValidator(),
-            x: 1,
-            y: 1,
-            cancellationToken: CancellationToken.None);
-
-        Assert.True(result.Success);
-    }
-
-    [Fact]
-    public async Task ProtectedTool_AuthorizesBeforeTargetSelection()
+    public async Task PointerClick_SelectsTargetBeforeDispatch()
     {
         var router = ToolRoutingFixture.CreateRouter(
             ToolRoutingFixture.CreateClient(),
@@ -105,15 +83,13 @@ public sealed class RoutedToolRegressionTests
 
         var result = await InSharpMcpTools.PointerClick(
             router,
-            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new McpRequestAuthorizationResolver(),
             new InteractionInputValidator(),
             x: 1,
             y: 1,
             cancellationToken: CancellationToken.None);
 
         Assert.False(result.Success);
-        Assert.Equal("unauthorized", result.ErrorCode);
+        Assert.Equal("ambiguous_target", result.ErrorCode);
     }
 
     [Fact]
@@ -128,9 +104,6 @@ public sealed class RoutedToolRegressionTests
 
         var result = await InSharpMcpTools.Close(
             router,
-            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new McpRequestAuthorizationResolver(),
-            authorizationToken: "secret",
             cancellationToken: CancellationToken.None);
 
         Assert.True(result.Success);
@@ -151,11 +124,8 @@ public sealed class RoutedToolRegressionTests
         var traceId = (string)start.Data!.GetType().GetProperty("TraceId")!.GetValue(start.Data)!;
         var typeResult = await InSharpMcpTools.TypeText(
             router,
-            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new McpRequestAuthorizationResolver(),
             new InteractionInputValidator(),
             "hello",
-            authorizationToken: "secret",
             cancellationToken: CancellationToken.None);
 
         var stop = InSharpMcpTools.StopTrace(router, traceId);

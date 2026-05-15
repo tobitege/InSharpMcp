@@ -22,7 +22,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\InSharpMcp.Contracts\InSharpMcp.Contracts.csproj" />
+    <ProjectReference Include="..\..\InSharpMcp.Bridge\InSharpMcp.Bridge.csproj" />
     <ProjectReference Include="..\..\InSharpMcp.Core\InSharpMcp.Core.csproj" />
+    <ProjectReference Include="..\..\InSharpMcp.Broker\InSharpMcp.Broker.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

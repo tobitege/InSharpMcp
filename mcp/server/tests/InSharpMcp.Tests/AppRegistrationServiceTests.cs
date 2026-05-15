@@ -1,4 +1,5 @@
 using InSharpMcp.Registry;
+using InSharpMcp.Routing;
 
 namespace InSharpMcp.Tests;
 
@@ -30,6 +31,23 @@ public sealed class AppRegistrationServiceTests
 
         Assert.Single(expired);
         Assert.Empty(registry.List());
+    }
+
+    [Fact]
+    public void ExpireStale_RemovesRegisteredConnection()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var registry = new AppInstanceRegistry();
+        var connections = new AppInstanceConnectionRegistry();
+        var service = new AppRegistrationService(registry, connections);
+        service.Register(
+            CreateDescriptor("stale") with { LastHeartbeatAt = now.AddSeconds(-10) },
+            ToolRoutingFixture.CreateClient());
+
+        var expired = service.ExpireStale(now, new AppRegistrationOptions { StaleInstanceAge = TimeSpan.FromSeconds(5) });
+
+        Assert.Single(expired);
+        Assert.False(connections.TryGet("stale", out _));
     }
 
     private static AppInstanceDescriptor CreateDescriptor(string instanceId) =>

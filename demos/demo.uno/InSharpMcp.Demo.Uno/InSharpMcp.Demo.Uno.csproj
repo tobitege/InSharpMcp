@@ -37,4 +37,9 @@
     </UnoFeatures>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\mcp\server\InSharpMcp.Adapters.Uno\InSharpMcp.Adapters.Uno.csproj" />
+    <ProjectReference Include="..\..\..\mcp\server\InSharpMcp.Bridge\InSharpMcp.Bridge.csproj" />
+  </ItemGroup>
+
 </Project>
