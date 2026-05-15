@@ -1,19 +1,43 @@
 using InSharpMcp.Adapters.Avalonia;
 using InSharpMcp.Contracts;
+using Avalonia.Controls;
+using System.Windows.Input;
 
 namespace InSharpMcp.Adapters.Avalonia.Tests;
 
 public sealed class AvaloniaAdapterTests
 {
     [Fact]
-    public async Task PointerInputSimulator_ReturnsUnsupported()
+    public async Task PointerInputSimulator_ForwardsKeyAndTextInput()
     {
-        var simulator = new AvaloniaPointerInputSimulator();
+        var input = new RecordingAvaloniaInputInjector();
+        var simulator = new AvaloniaPointerInputSimulator(new Button(), new ImmediateDispatcher(), input);
 
-        var result = await simulator.PointerClickAsync(10, 20, CancellationToken.None);
+        var keyResult = await simulator.KeyPressAsync("enter", ["ctrl"], CancellationToken.None);
+        var textResult = await simulator.TypeTextAsync("hello", CancellationToken.None);
 
-        Assert.False(result.Success);
-        Assert.Equal("unsupported", result.ErrorCode);
+        Assert.True(keyResult.Success);
+        Assert.True(textResult.Success);
+        Assert.Equal("enter", input.Key);
+        Assert.Equal(["ctrl"], input.Modifiers);
+        Assert.Equal("hello", input.Text);
+    }
+
+    [Fact]
+    public async Task AutomationInvoker_ExecutesCommandSourceDefaultAction()
+    {
+        var command = new RecordingCommand();
+        var button = new Button
+        {
+            Command = command,
+            CommandParameter = "payload",
+        };
+        var invoker = new AvaloniaAutomationPeerInvoker(button, new ImmediateDispatcher());
+
+        var result = await invoker.InvokeDefaultActionAsync("0", CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal("payload", command.Parameter);
     }
 
     [Fact]
@@ -66,5 +90,69 @@ public sealed class AvaloniaAdapterTests
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(ToolResult.Fail("Not implemented by test stub.", "unsupported"));
         }
+    }
+
+    private sealed class ImmediateDispatcher : IUiDispatcher
+    {
+        public Task<T> RunAsync<T>(Func<CancellationToken, T> action, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(action(cancellationToken));
+        }
+
+        public Task<T> RunAsync<T>(Func<CancellationToken, Task<T>> action, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return action(cancellationToken);
+        }
+    }
+
+    private sealed class RecordingAvaloniaInputInjector : IAvaloniaInputInjector
+    {
+        public string? Key { get; private set; }
+
+        public IReadOnlyList<string>? Modifiers { get; private set; }
+
+        public string? Text { get; private set; }
+
+        public ToolResult PointerClick(int screenX, int screenY)
+        {
+            _ = screenX;
+            _ = screenY;
+            return ToolResult.Ok("Pointer click sent.");
+        }
+
+        public ToolResult KeyPress(string key, IReadOnlyList<string> modifiers)
+        {
+            Key = key;
+            Modifiers = modifiers.ToArray();
+            return ToolResult.Ok("Key press sent.");
+        }
+
+        public ToolResult TypeText(string text)
+        {
+            Text = text;
+            return ToolResult.Ok("Text input sent.");
+        }
+    }
+
+    private sealed class RecordingCommand : ICommand
+    {
+        public event EventHandler? CanExecuteChanged;
+
+        public object? Parameter { get; private set; }
+
+        public bool CanExecute(object? parameter)
+        {
+            _ = parameter;
+            return true;
+        }
+
+        public void Execute(object? parameter)
+        {
+            Parameter = parameter;
+        }
+
+        public void NotifyCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     }
 }

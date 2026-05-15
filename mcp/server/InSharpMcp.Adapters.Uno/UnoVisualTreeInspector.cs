@@ -120,7 +120,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
         return CreateNode(element, identifier, limits, children);
     }
 
-    private static (DependencyObject Element, string Identifier)? Find(
+    internal static (DependencyObject Element, string Identifier)? Find(
         DependencyObject element,
         string elementIdentifier,
         string currentIdentifier,

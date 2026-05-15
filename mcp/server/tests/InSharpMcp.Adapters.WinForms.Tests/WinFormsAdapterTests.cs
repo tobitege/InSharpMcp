@@ -57,6 +57,43 @@ public sealed class WinFormsAdapterTests
         });
 
     [Fact]
+    public Task PointerInputSimulator_TranslatesClientCoordinatesToScreenCoordinates() =>
+        RunStaAsync(async () =>
+        {
+            using var form = CreateForm();
+            form.CreateControl();
+            var dispatcher = new WinFormsUiDispatcher(form);
+            var input = new RecordingWinFormsInputInjector();
+            var simulator = new WinFormsPointerInputSimulator(form, dispatcher, input);
+
+            var result = await simulator.PointerClickAsync(7, 11, CancellationToken.None);
+
+            Assert.True(result.Success);
+            var expected = form.PointToScreen(new System.Drawing.Point(7, 11));
+            Assert.Equal(expected.X, input.ScreenX);
+            Assert.Equal(expected.Y, input.ScreenY);
+        });
+
+    [Fact]
+    public Task PointerInputSimulator_ForwardsKeyAndTextInput() =>
+        RunStaAsync(async () =>
+        {
+            using var form = CreateForm();
+            var dispatcher = new WinFormsUiDispatcher(form);
+            var input = new RecordingWinFormsInputInjector();
+            var simulator = new WinFormsPointerInputSimulator(form, dispatcher, input);
+
+            var keyResult = await simulator.KeyPressAsync("enter", ["ctrl"], CancellationToken.None);
+            var textResult = await simulator.TypeTextAsync("hello", CancellationToken.None);
+
+            Assert.True(keyResult.Success);
+            Assert.True(textResult.Success);
+            Assert.Equal("enter", input.Key);
+            Assert.Equal(["ctrl"], input.Modifiers);
+            Assert.Equal("hello", input.Text);
+        });
+
+    [Fact]
     public Task ScreenshotProvider_CapturesPngBytes() =>
         RunStaAsync(async () =>
         {
@@ -115,5 +152,38 @@ public sealed class WinFormsAdapterTests
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
         return completion.Task;
+    }
+
+    private sealed class RecordingWinFormsInputInjector : IWinFormsInputInjector
+    {
+        public int? ScreenX { get; private set; }
+
+        public int? ScreenY { get; private set; }
+
+        public string? Key { get; private set; }
+
+        public IReadOnlyList<string>? Modifiers { get; private set; }
+
+        public string? Text { get; private set; }
+
+        public ToolResult PointerClick(int screenX, int screenY)
+        {
+            ScreenX = screenX;
+            ScreenY = screenY;
+            return ToolResult.Ok("Pointer click sent.");
+        }
+
+        public ToolResult KeyPress(string key, IReadOnlyList<string> modifiers)
+        {
+            Key = key;
+            Modifiers = modifiers.ToArray();
+            return ToolResult.Ok("Key press sent.");
+        }
+
+        public ToolResult TypeText(string text)
+        {
+            Text = text;
+            return ToolResult.Ok("Text input sent.");
+        }
     }
 }

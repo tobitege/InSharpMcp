@@ -1,21 +1,55 @@
 # Adapter Validation Status
 
-## Phase 8 Decision
+## Current Status
 
-`plans/PLAN.md` makes Avalonia and WinForms adapters validation-gated:
+All planned adapters are implemented and have validating hosts or build targets:
 
-- Add Avalonia adapter only when an Avalonia host can validate behavior.
-- Add WinForms adapter only when a WinForms host can validate behavior.
+- Uno adapter: `mcp/server/InSharpMcp.Adapters.Uno`
+- Avalonia adapter: `mcp/server/InSharpMcp.Adapters.Avalonia`
+- WinForms adapter: `mcp/server/InSharpMcp.Adapters.WinForms`
+- Uno demo host: `demos/demo.uno`
+- Avalonia demo host: `demos/demo.avalonia`
+- WinForms demo host: `demos/demo.winforms`
 
-Repository discovery found no Avalonia or WinForms demo/host project. The only matches for Avalonia/WinForms are repository instructions and the integration plan itself.
+The Avalonia and WinForms validation gate is resolved. Both demo projects reference and register their adapter services. The Uno adapter builds against its planned target frameworks.
 
-## Current Outcome
+## Implemented Coverage
 
-- Avalonia adapter: not added yet because no validating Avalonia host is available.
-- WinForms adapter: not added yet because no validating WinForms host is available.
-- Shared adapter contract tests are available in `mcp/server/tests/InSharpMcp.AdapterContractTests`.
-- The implemented Uno adapter builds against its planned target frameworks.
+- Shared adapter contract tests: `mcp/server/tests/InSharpMcp.AdapterContractTests`
+- Avalonia focused tests: `mcp/server/tests/InSharpMcp.Adapters.Avalonia.Tests`
+- WinForms focused tests: `mcp/server/tests/InSharpMcp.Adapters.WinForms.Tests`
+- Demo solution covering Uno, Avalonia, and WinForms: `demos/InSharpMcp.Demos.slnx`
 
-## Next Required Input
+## Current Unsupported Paths
 
-To implement either additional adapter, add or provide a validating host project for that framework. The adapter should then be implemented against the shared contracts and run through the shared adapter contract tests.
+These are the current intentional structured `unsupported` paths:
+
+- Uno Desktop/Skia screenshot remains unsupported until a validated backend-specific screenshot path exists.
+- Uno Desktop/Skia pointer click remains unsupported until a validated backend-specific screen-coordinate path exists.
+- Uno default action returns `unsupported` for elements that do not expose `ButtonBase.Command`.
+- Avalonia default action returns `unsupported` for elements that do not expose `ICommandSource.Command`.
+- WinForms default action returns `unsupported` for elements that do not expose `IButtonControl`.
+
+Pointer, key, and text input are no longer broad adapter stubs. The implemented paths use native Windows input APIs where the adapter has a validated platform route.
+
+## Verification
+
+Current verification command:
+
+```powershell
+dotnet test mcp/server/InSharpMcp.sln
+```
+
+Current result:
+
+- `InSharpMcp.Tests`: 55 passed
+- `InSharpMcp.AdapterContractTests`: 9 passed
+- `InSharpMcp.Adapters.Avalonia.Tests`: 3 passed
+- `InSharpMcp.Adapters.WinForms.Tests`: 5 passed
+- Total: 72 passed
+
+Demo build command:
+
+```powershell
+dotnet build demos/InSharpMcp.Demos.slnx
+```

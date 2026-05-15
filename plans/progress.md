@@ -2,6 +2,34 @@
 
 ## Session: 2026-05-15
 
+### Phase 15: Public Input and Default-Action Wiring
+- **Status:** complete
+- Actions taken:
+  - Confirmed the goal tool still cannot create a second durable goal record for this thread, then continued under the user request.
+  - Audited the existing pointer/key/text and automation invoker stubs for Uno, Avalonia, and WinForms.
+  - Implemented WinForms pointer/key/text input through native Windows input APIs and `Control.PointToScreen`.
+  - Implemented Avalonia pointer/key/text input through native Windows input APIs and Avalonia `PointToScreen`.
+  - Implemented Uno key/text input through native Windows input APIs and Windows-target pointer input through native HWND client-to-screen translation.
+  - Implemented Avalonia default action invocation through public `ICommandSource.Command`.
+  - Implemented Uno default action invocation through public `ButtonBase.Command`.
+  - Added non-destructive tests with fake input injectors for WinForms and Avalonia.
+  - Added Avalonia command invocation coverage.
+- Files created/modified:
+  - `README.md`
+  - `mcp/server/InSharpMcp.Adapters.WinForms/*Input*.cs`
+  - `mcp/server/InSharpMcp.Adapters.Avalonia/*Input*.cs`
+  - `mcp/server/InSharpMcp.Adapters.Uno/*Input*.cs`
+  - `mcp/server/InSharpMcp.Adapters.Avalonia/AvaloniaAutomationPeerInvoker.cs`
+  - `mcp/server/InSharpMcp.Adapters.Uno/UnoAutomationPeerInvoker.cs`
+  - `mcp/server/InSharpMcp.Adapters.Avalonia/AvaloniaVisualTreeInspector.cs`
+  - `mcp/server/InSharpMcp.Adapters.Uno/UnoVisualTreeInspector.cs`
+  - `mcp/server/tests/InSharpMcp.Adapters.Avalonia.Tests/AvaloniaAdapterTests.cs`
+  - `mcp/server/tests/InSharpMcp.Adapters.WinForms.Tests/WinFormsAdapterTests.cs`
+  - `plans/task_plan.md`
+  - `plans/findings.md`
+  - `plans/progress.md`
+  - `plans/IMPLEMENTATION_SUMMARY.md`
+
 ### Phase 13: GitHub README and User Manual
 - **Status:** complete
 - Actions taken:
@@ -26,9 +54,9 @@
   - Confirmed the working tree was clean before Phase 12.
   - Reopened planning files with Phase 12 adapter scope.
   - Created `InSharpMcp.Adapters.Avalonia`.
-  - Implemented Avalonia UI dispatching, visual-tree inspection, DataContext metadata, screenshot capture, app close, accessibility delegation, DI registration, and explicit unsupported input/automation results.
+  - Implemented Avalonia UI dispatching, visual-tree inspection, DataContext metadata, screenshot capture, app close, accessibility delegation, DI registration, and initial structured unsupported input/automation results later replaced in Phase 15.
   - Created `InSharpMcp.Adapters.WinForms`.
-  - Implemented WinForms UI dispatching, control-tree inspection, Tag-based DataContext metadata, PNG screenshots, app close, accessibility delegation, DI registration, explicit unsupported pointer/key/text input, and `IButtonControl` default action invocation.
+  - Implemented WinForms UI dispatching, control-tree inspection, Tag-based DataContext metadata, PNG screenshots, app close, accessibility delegation, DI registration, initial structured unsupported pointer/key/text input later replaced in Phase 15, and `IButtonControl` default action invocation.
   - Wired both adapter projects into `mcp/server/InSharpMcp.sln`.
   - Wired Avalonia and WinForms demo apps to reference and register their adapter services.
   - Added focused Avalonia and WinForms adapter test projects.
@@ -49,7 +77,7 @@
   - `plans/progress.md`
 
 ### Phase 11: Demo Apps for Planned Environments
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - Read the demo-app section of `plans/PLAN.md`.
   - Validated the new goal objective with Goalcraft at 2,196 characters.
@@ -159,7 +187,7 @@
 | Phase 1 transport/policy slice | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 20 tests passed | Pass |
 | Phase 1 verification completion | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 25 tests passed | Pass |
 | Phase 2 adapter contract harness | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 34 tests passed | Pass |
-| Phase 3 Uno adapter MVP | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 36 tests passed | Pass |
+| Phase 3 Uno adapter | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 36 tests passed | Pass |
 | Phase 4 screenshot/DataContext | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 42 tests passed | Pass |
 | Phase 5 selectors/waits/accessibility/events | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 48 tests passed | Pass |
 | Phase 6 interaction tools | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 53 tests passed | Pass |
@@ -179,6 +207,9 @@
 | Phase 12 server solution build | `dotnet build mcp/server/InSharpMcp.sln` | Build passes | 0 warnings, 0 errors | Pass |
 | Phase 12 demo solution build | `dotnet build demos/InSharpMcp.Demos.slnx` | Build passes | 0 warnings, 0 errors | Pass |
 | Phase 12 final regression suite | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 69 tests passed | Pass |
+| Phase 15 WinForms adapter tests | `dotnet test mcp/server/tests/InSharpMcp.Adapters.WinForms.Tests/InSharpMcp.Adapters.WinForms.Tests.csproj` | Build and tests pass | 5 tests passed | Pass |
+| Phase 15 Avalonia adapter tests | `dotnet test mcp/server/tests/InSharpMcp.Adapters.Avalonia.Tests/InSharpMcp.Adapters.Avalonia.Tests.csproj` | Build and tests pass | 3 tests passed | Pass |
+| Phase 15 final regression suite | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 72 tests passed | Pass |
 
 ### Phase 2: Adapter Contract Harness
 - **Status:** complete
@@ -197,7 +228,7 @@
   - `plans/findings.md`
   - `plans/progress.md`
 
-### Phase 3: Uno Adapter MVP
+### Phase 3: Uno Adapter
 - **Status:** complete
 - Actions taken:
   - Confirmed `Uno.Sdk` version `6.5.33` is available.
@@ -205,7 +236,7 @@
   - Implemented `UnoUiDispatcher`.
   - Implemented bounded `UnoVisualTreeInspector`.
   - Added Uno adapter service registration and app provider.
-  - Added explicit unsupported implementations for screenshot, pointer input, and automation peer invocation until later phases.
+  - Added initial structured unsupported implementations for screenshot, pointer input, and automation peer invocation until later phases could add supported-scope behavior or keep structured unsupported results where public platform paths are unvalidated.
   - Added `ism_visualtree_snapshot` and `ism_get_element_metadata` tool methods with UI queue and limit policy usage.
   - Added tests for visual-tree tool limit clamping and metadata limit routing.
 - Files created/modified:
@@ -225,7 +256,7 @@
   - Implemented bounded, non-recursive DataContext metadata in `UnoVisualTreeInspector`.
   - Added sensitive-name redaction and primitive/string-only property filtering.
   - Implemented Windows-only Uno screenshot PNG capture using `RenderTargetBitmap` and PNG encoding.
-  - Kept Desktop/Skia screenshot as explicit `unsupported`.
+  - Kept Desktop/Skia screenshot as explicit `unsupported` because no validated backend-specific screenshot path is present.
   - Added `ism_get_element_datacontext` and `ism_get_screenshot` tools.
   - Added tests for DataContext redaction, truncation, property caps, screenshot result shape, and tool catalog discovery.
 - Files created/modified:
@@ -269,7 +300,7 @@
   - Added interaction input validation for coordinates, keys, modifiers, and text length.
   - Added protected `ism_pointer_click`, `ism_key_press`, `ism_type_text`, `ism_element_peer_default_action`, and `ism_close` tools.
   - Routed input and automation-peer tools through the UI operation queue.
-  - Kept Uno input and automation peer paths as explicit `unsupported` until proven platform-specific implementations are configured.
+  - Started with structured unsupported Uno input and automation peer paths until proven platform-specific implementations could be configured.
   - Added interaction event-log entries around executed interaction tools.
   - Added tests for authorization, coordinate validation, modifier validation, unsupported automation results, and interaction event logging.
 - Files created/modified:
@@ -301,9 +332,8 @@
 ### Phase 8: Additional Framework Adapters
 - **Status:** complete
 - Actions taken:
-  - Searched the repository for Avalonia and WinForms host code.
-  - Confirmed no validating Avalonia or WinForms host/demo project exists.
-  - Documented the validation blocker instead of adding unverified adapters.
+  - Recorded the `plans/PLAN.md` validation gate for additional adapters.
+  - Superseded by Phase 11 and Phase 12: demo hosts now exist, and Avalonia and WinForms adapters are implemented, wired to demos, and verified.
 - Files created/modified:
   - `plans/ADAPTER_VALIDATION.md`
   - `plans/task_plan.md`
@@ -339,12 +369,14 @@
 | 2026-05-15 | WinForms invoker targeted `ButtonBase.PerformClick()` even though the public default-action contract is on `IButtonControl` | 1 | Switched the invoker to `IButtonControl.PerformClick()`. |
 | 2026-05-15 | Avalonia dispatcher async overload returned `Task<T>` directly, so `GetTask()` was invalid | 1 | Returned the `InvokeAsync` task directly. |
 | 2026-05-15 | Phase 12 first full test run had a stale `UiTreeSnapshot` named parameter and an unshown WinForms form for `PerformClick()` | 1 | Updated the named parameter and showed the test form before invocation; full suite passed. |
+| 2026-05-15 | Native input injector method-group overload was ambiguous for `Enumerable.Select` | 1 | Replaced the method-group calls with explicit static lambdas; adapter builds passed. |
+| 2026-05-15 | Avalonia automation invoker missed the `Avalonia.Visual` namespace import | 1 | Added the namespace import; Avalonia adapter build passed. |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 12 complete. |
-| Where am I going? | Final commit and clean working tree check. |
+| Where am I? | Phase 15 complete. |
+| Where am I going? | Final full verification and clean process check. |
 | What's the goal? | Fully implement `plans/PLAN.md` with verification evidence and a clean final working tree. |
 | What have I learned? | See `plans/findings.md`. |
-| What have I done? | Completed Phase 1 through Phase 12 with Avalonia and WinForms adapters, demos wired to those adapters, and 69 passing tests. |
+| What have I done? | Completed Phase 1 through Phase 15 with public input/default-action paths added for the adapters and focused adapter tests passing. |

@@ -143,8 +143,8 @@ mcp/server/
 | `InSharpMcp.Contracts` | `net8.0` | No UI framework references; shared tool contracts and result models |
 | `InSharpMcp` | `net8.0` | MCP broker, app registry, tool routing, and transport host code |
 | `InSharpMcp.Adapters.Uno` | `net9.0-windows10.0.19041;net9.0-desktop` | Uno/WinUI adapter implementation; target frameworks may vary by supported Uno version |
-| `InSharpMcp.Adapters.Avalonia` | adapter-specific .NET TFMs | Future Avalonia adapter implementation |
-| `InSharpMcp.Adapters.WinForms` | Windows desktop TFM | Future WinForms adapter implementation |
+| `InSharpMcp.Adapters.Avalonia` | adapter-specific .NET TFMs | Avalonia adapter implementation |
+| `InSharpMcp.Adapters.WinForms` | Windows desktop TFM | WinForms adapter implementation |
 | `InSharpMcp.Tests` | supported test TFM | In-memory MCP/tool contract tests |
 | `InSharpMcp.AdapterContractTests` | supported test TFM | Shared adapter behavior test harness |
 
@@ -763,10 +763,11 @@ It uses WinUI/Uno-specific APIs and compiles only in the Uno adapter project.
 | `UnoAppProvider` | Store the active `Window`; use app/package metadata where available |
 | `UnoUiDispatcher` | Marshal every UI read/write onto the window dispatcher |
 | `UnoVisualTreeInspector` | Use `VisualTreeHelper.GetChild`; bound depth, node count, string length, and timeout |
-| `UnoScreenshotProvider` | Windows: `RenderTargetBitmap.RenderAsync()` plus PNG encoding; Desktop/Skia: TBD future enhancement |
+| `UnoScreenshotProvider` | Windows: `RenderTargetBitmap.RenderAsync()` plus PNG encoding; Desktop/Skia: return structured unsupported until a validated backend path exists |
 | `UnoPointerInputSimulator.Windows` | Use supported Windows input injection only when available and permission-compatible; otherwise return unsupported |
 | `UnoPointerInputSimulator.Skia` | Do not fake `PointerRoutedEventArgs`; use a proven platform path or return unsupported |
 | `UnoAutomationPeerInvoker` | Find an existing peer through public APIs/patterns; if no invokable pattern is available, return unsupported |
+| `UnoAccessibilityTreeProvider` | Expose the same bounded tree shape through the shared accessibility contract |
 
 ### Visual Tree Snapshot Strategy
 
@@ -793,7 +794,7 @@ result.
 ### Screenshot Strategy
 
 - Windows: use `RenderTargetBitmap.RenderAsync()` and encode PNG bytes.
-- Desktop/Skia: TBD future enhancement.
+- Desktop/Skia: return structured unsupported until a validated backend-specific screenshot path exists.
 - Android/WASM: return unsupported in the first version.
 
 ### Input Strategy
@@ -802,7 +803,7 @@ Input simulation is platform-specific and must not be represented as
 framework-agnostic magic.
 
 - Windows: evaluate `InputInjector` or another supported Windows API.
-- Desktop/Skia: TBD future enhancement; return unsupported until a tested
+- Desktop/Skia: return unsupported until a tested
   backend-specific input path exists.
 - Do not construct or raise framework routed event args manually as a substitute
   for real input.
@@ -820,10 +821,10 @@ Expected implementation areas:
 - inspect the logical/visual tree using Avalonia APIs
 - identify elements through `Name`, automation properties, or adapter-defined IDs
 - capture screenshots only through a supported Avalonia/platform path
-- return unsupported for input simulation until a tested backend path exists
-
-This adapter is not part of the first implementation unless an Avalonia host is
-available for validation.
+- return structured unsupported for input simulation until a tested backend path exists
+- expose bounded accessibility output where the adapter can safely map it
+The Avalonia adapter is validation-gated. Once a validating host is available, it
+must be treated as a complete first-class adapter for the supported scope.
 
 ---
 
@@ -838,10 +839,11 @@ Expected implementation areas:
 - inspect the `Control.Controls` tree
 - identify elements through `Name`, accessibility names, or adapter-defined IDs
 - capture screenshots through supported control/window capture APIs
-- implement input only through a proven Windows input path, or return unsupported
+- expose bounded accessibility output where the adapter can safely map it
+- implement input only through a proven Windows input path, or return structured unsupported
 
-This adapter is not part of the first implementation unless a WinForms host is
-available for validation.
+The WinForms adapter is validation-gated. Once a validating host is available,
+it must be treated as a complete first-class adapter for the supported scope.
 
 ---
 
@@ -976,7 +978,7 @@ expire stale instances that stop heartbeating.
 14. Define framework-neutral expectations for element lookup, visual-tree output, screenshots, and input.
 15. Add fake/in-memory adapters for core MCP tests where a real UI framework is unnecessary.
 
-### Phase 3 - Uno Adapter MVP
+### Phase 3 - Uno Adapter
 
 16. Create `InSharpMcp.Adapters.Uno` for Windows/Desktop adapter code.
 17. Implement `UnoUiDispatcher`.
@@ -987,7 +989,7 @@ expire stale instances that stop heartbeating.
 ### Phase 4 - Screenshot and DataContext Metadata
 
 21. Implement Windows screenshot capture and MCP image-content return in the Uno adapter.
-22. Mark Desktop/Skia screenshot as a TBD future enhancement and return unsupported.
+22. Return structured unsupported for Desktop/Skia screenshot until a validated backend path exists.
 23. Implement bounded, non-recursive DataContext metadata.
 24. Add tests for redaction, output caps, image/error result shape, and concurrent screenshot/inspection behavior.
 
@@ -1003,7 +1005,7 @@ expire stale instances that stop heartbeating.
 ### Phase 6 - Interaction Tools
 
 31. Implement Windows pointer/key/text input only through proven platform APIs.
-32. Mark Desktop/Skia input as a TBD future enhancement and return unsupported.
+32. Return structured unsupported for Desktop/Skia input until a validated backend path exists.
 33. Implement automation peer default action only through public invokable patterns.
 34. Add optional before/after screenshot capture for protected interaction tools.
 35. Add tests for authorization, validation, unsupported paths, cancellation, serialized input operations, and trace entries around interactions.
@@ -1070,7 +1072,7 @@ Manual verification:
 - two instances of the same app can be selected separately.
 - two different apps using the same adapter can be selected separately.
 - Desktop/Skia returns correct support/unsupported results per implemented adapter.
-- Future Avalonia/WinForms hosts can register their adapters without changing the MCP host.
+- Avalonia and WinForms hosts can register their adapters without changing the MCP host.
 
 ---
 
@@ -1102,6 +1104,6 @@ Every demo should include:
 ## Remaining Decisions
 
 1. **Broker discovery:** how host apps find the local broker.
-2. **Wait semantics:** use static global defaults with caps that avoid both overly conservative waits and very long waits; exact values TBD.
-3. **Accessibility mapping:** common role/state/value model across frameworks. TBD.
-4. **Event categories:** which logs/events are safe enough to expose by default. TBD.
+2. **Wait semantics:** use static global defaults with caps that avoid both overly conservative waits and very long waits; exact values are adapter-policy decisions.
+3. **Accessibility mapping:** common role/state/value model across frameworks remains bounded by each framework's public APIs.
+4. **Event categories:** expose only logs/events that are safe by default and can be redacted consistently.

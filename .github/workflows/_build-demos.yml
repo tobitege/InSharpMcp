@@ -1,0 +1,84 @@
+name: Build Demos (Reusable)
+
+# Internal reusable workflow for demo build artifacts.
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: 'Branch to build from'
+        required: false
+        type: string
+        default: 'main'
+
+jobs:
+  build-windows-demos:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            artifact_name: InSharpMcp-Demos-Windows-x64
+
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Publish Avalonia demo
+        shell: pwsh
+        run: |
+          dotnet publish demos/demo.avalonia/InSharpMcp.Demo.Avalonia.csproj `
+            -c Release `
+            -r ${{ matrix.rid }} `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -o ./publish/avalonia
+
+      - name: Publish Uno demo
+        shell: pwsh
+        run: |
+          dotnet publish demos/demo.uno/InSharpMcp.Demo.Uno/InSharpMcp.Demo.Uno.csproj `
+            -c Release `
+            -f net9.0-desktop `
+            -r ${{ matrix.rid }} `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -o ./publish/uno
+
+      - name: Publish WinForms demo
+        shell: pwsh
+        run: |
+          dotnet publish demos/demo.winforms/InSharpMcp.Demo.WinForms.csproj `
+            -c Release `
+            -r ${{ matrix.rid }} `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -o ./publish/winforms
+
+      - name: Zip Windows artifact
+        if: matrix.os == 'windows-latest'
+        run: Compress-Archive -Path ./publish/* -DestinationPath ./${{ matrix.artifact_name }}.zip
+        shell: pwsh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            ./${{ matrix.artifact_name }}.zip
+          if-no-files-found: ignore

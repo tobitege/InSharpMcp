@@ -33,7 +33,7 @@
 - Event log entries are bounded and redact sensitive data keys before storage.
 - Protected interaction tools now authorize through `McpAuthorization`, validate input before dispatch, run through the UI queue where applicable, and record interaction event-log entries.
 - Trace start/stop uses a bounded in-memory trace store and assertion helpers return structured pass/fail `AssertionResult` data without throwing for normal failures.
-- Phase 8 found no Avalonia or WinForms validation host in the repository. Per `plans/PLAN.md`, those adapters are not added until a validating host is available.
+- Phase 8 recorded the additional-adapter validation gate. Phase 11 and Phase 12 later resolved it by adding demo hosts and implementing the Avalonia and WinForms adapters.
 - Final verification passed with 56 tests. `plans/IMPLEMENTATION_SUMMARY.md` maps the implemented scope and validation-gated scope.
 - Follow-up review found the prior completion state was premature: most tools bypass target selection, HTTP authorization is not transport-aware, registered endpoints are not mapped to executable app operations, traces are not populated by real tool execution, `ism_close` bypasses the queue, and Uno lookup/text limits are incomplete.
 - Tool entrypoints now route through `AppInstanceRouter` and `IAppInstanceClient`, which maps selected registry descriptors to executable app operations and returns `ambiguous_target` or `stale_instance` before dispatch.
@@ -45,10 +45,12 @@
 - Installed .NET templates include `unoapp`, `avalonia.app`, and `winforms`, so each demo can start from a framework-native template.
 - `demos/InSharpMcp.Demos.slnx` builds all three demo projects. The first aggregate build failed because Uno SDK version resolution could not see the nested `demo.uno/global.json`; setting the Uno demo project SDK to `Uno.Sdk/6.5.33` fixed the solution-level build.
 - The new adapter goal targets `InSharpMcp.Adapters.Avalonia` and `InSharpMcp.Adapters.WinForms`, which can now be validated because Phase 11 added buildable demo hosts for both frameworks.
-- `InSharpMcp.Adapters.Avalonia` now builds against Avalonia 11.3.9 and provides UI dispatcher marshalling, bounded visual-tree inspection, DataContext metadata, screenshot capture for measured controls, app close, accessibility-tree delegation, and explicit unsupported results for unsafe input/automation paths.
-- `InSharpMcp.Adapters.WinForms` now builds for `net8.0-windows` and provides control-tree inspection, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, app close, accessibility-tree delegation, explicit unsupported pointer/key/text input, and default action invocation through `IButtonControl.PerformClick()`.
+- `InSharpMcp.Adapters.Avalonia` now builds against Avalonia 11.3.9 and provides UI dispatcher marshalling, bounded visual-tree inspection, DataContext metadata, screenshot capture for measured controls, app close, accessibility-tree delegation, Windows pointer/key/text input through native input APIs, and default action invocation through public `ICommandSource.Command`.
+- `InSharpMcp.Adapters.WinForms` now builds for `net8.0-windows` and provides control-tree inspection, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, app close, accessibility-tree delegation, Windows pointer/key/text input through native input APIs, and default action invocation through `IButtonControl.PerformClick()`.
 - Avalonia and WinForms demos now reference their adapter projects and register adapter services at startup, giving compile-time integration coverage for the two new adapter packages.
-- The full server test suite now includes adapter-specific test projects and passes with 69 tests.
+- `InSharpMcp.Adapters.Uno` now uses native Windows input APIs for key/text input and Windows-target pointer input when a native window handle is available; Desktop/Skia pointer click remains structured `unsupported` until a validated backend-specific screen-coordinate path exists.
+- `InSharpMcp.Adapters.Uno` default action invocation is now wired to public `ButtonBase.Command`; unsupported remains only for elements without that command surface.
+- The full server test suite now includes adapter-specific test projects and passes with 69 tests before the Phase 15 additions; focused Phase 15 adapter test projects pass with 5 WinForms tests and 3 Avalonia tests.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -61,16 +63,17 @@
 | Keep broker host classes as thin startup wrappers around SDK hosting APIs | Transport behavior should stay in the official SDK while InSharpMcp owns policy, registry, and adapter routing services. |
 | Use reflection over `InSharpMcpTools` for the initial tool catalog test | It verifies SDK attributes and `ism_` tool names without starting a long-lived MCP server process. |
 | Put fake adapters in `InSharpMcp.AdapterContractTests` first | The harness validates contract expectations without adding test-only helpers to production packages. |
-| Leave Uno screenshot, input, and automation peer invocation as explicit unsupported results until their later plan phases | Phase 3 only requires dispatcher, visual-tree inspector, metadata, and unsupported-path behavior; later phases add screenshot/DataContext/input details. |
+| Keep only plan-approved Uno unsupported paths as structured unsupported results | Windows screenshot, DataContext, Windows input, and command-backed default action support are implemented; Desktop/Skia screenshot and Desktop/Skia pointer click remain unsupported until validated backend-specific paths exist. |
 | Put DataContext reflection in contracts instead of the Uno adapter | The bounding/redaction behavior is framework-independent and can be tested without a live UI. |
 | Implement selector matching over framework-neutral snapshots | It keeps the selector grammar independent from any adapter and makes query/wait behavior testable without a live UI. |
 | Use event-log entries as the initial trace surface for interaction tools | It provides auditable interaction result entries before the dedicated trace start/stop phase. |
 | Keep assertion helpers result-oriented rather than exception-oriented | Normal assertion failures are expected tool outcomes and should return structured data. |
-| Document the Avalonia/WinForms validation blocker instead of adding unvalidated adapters | `plans/PLAN.md` explicitly gates those adapters on available validation hosts. |
+| Document the temporary Avalonia/WinForms validation blocker instead of adding unvalidated adapters during Phase 8 | `plans/PLAN.md` explicitly gates those adapters on available validation hosts; Phase 11 later added validating demo hosts and Phase 12 implemented both adapters. |
 | Reopen implementation as Phase 10 instead of rewriting history | The workspace is clean and committed; remediation should be additive, tested, and committed in coherent slices. |
 | Add demos as Phase 11 | The prior phases are complete; demo apps are a separate delivery slice requested by the new goal. |
 | Add Avalonia/WinForms adapters as Phase 12 | The demo hosts satisfy the plan's validation gate for these framework adapters. |
-| Keep Avalonia pointer/key/text input and automation invocation unsupported for now | The plan requires proven platform APIs; the current implementation avoids fabricated input events and returns explicit `unsupported` results. |
+| Implement Avalonia pointer/key/text input only through native input APIs | The plan requires proven platform APIs; the implementation uses Windows native input from Avalonia screen coordinates and avoids fabricated framework events. |
+| Implement public default actions through command/button contracts | Avalonia uses `ICommandSource.Command`, Uno uses `ButtonBase.Command`, and WinForms uses `IButtonControl.PerformClick()`. |
 | Use WinForms `Tag` as the inspected DataContext surface | WinForms has no native DataContext equivalent; `Tag` is the conventional object payload surface and can use the shared metadata factory safely. |
 
 ## Issues Encountered
@@ -96,7 +99,7 @@
 ## Verification Notes
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 25 tests after completing Phase 1 verification coverage.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 34 tests after adding Phase 2 adapter contract harness.
-- `dotnet test mcp/server/InSharpMcp.sln` passed with 36 tests after adding the Uno adapter MVP and visual-tree/metadata tools.
+- `dotnet test mcp/server/InSharpMcp.sln` passed with 36 tests after adding the Uno adapter and visual-tree/metadata tools.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 42 tests after adding screenshot tool shape and DataContext metadata redaction/cap tests.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 48 tests after adding selectors, wait, accessibility, and event-log tooling.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 53 tests after adding interaction tools.
@@ -116,6 +119,12 @@
 - Phase 12 `dotnet build mcp/server/InSharpMcp.sln` passed with 0 warnings and 0 errors.
 - Phase 12 `dotnet build demos/InSharpMcp.Demos.slnx` passed with 0 warnings and 0 errors.
 - Phase 12 `dotnet test mcp/server/InSharpMcp.sln` passed with 69 tests.
+- Phase 15 `dotnet build mcp/server/InSharpMcp.Adapters.WinForms/InSharpMcp.Adapters.WinForms.csproj` passed with 0 warnings and 0 errors.
+- Phase 15 `dotnet build mcp/server/InSharpMcp.Adapters.Avalonia/InSharpMcp.Adapters.Avalonia.csproj` passed with 0 warnings and 0 errors.
+- Phase 15 `dotnet build mcp/server/InSharpMcp.Adapters.Uno/InSharpMcp.Adapters.Uno.csproj` passed with 0 warnings and 0 errors.
+- Phase 15 `dotnet test mcp/server/tests/InSharpMcp.Adapters.WinForms.Tests/InSharpMcp.Adapters.WinForms.Tests.csproj` passed with 5 tests.
+- Phase 15 `dotnet test mcp/server/tests/InSharpMcp.Adapters.Avalonia.Tests/InSharpMcp.Adapters.Avalonia.Tests.csproj` passed with 3 tests.
+- Phase 15 final `dotnet test mcp/server/InSharpMcp.sln` passed with 72 tests.
 
 ## README Source Notes
 - There is no root `README.md` yet.

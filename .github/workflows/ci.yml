@@ -1,0 +1,47 @@
+name: InSharpMcp CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  server:
+    name: Build and test server
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore server solution
+        run: dotnet restore mcp/server/InSharpMcp.sln
+
+      - name: Build server solution
+        run: dotnet build mcp/server/InSharpMcp.sln -c Release --no-restore
+
+      - name: Test server solution
+        run: dotnet test mcp/server/InSharpMcp.sln -c Release --no-build
+
+  demos:
+    name: Build demos
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore demo solution
+        run: dotnet restore demos/InSharpMcp.Demos.slnx
+
+      - name: Build demo solution
+        run: dotnet build demos/InSharpMcp.Demos.slnx -c Release --no-restore

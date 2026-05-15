@@ -25,8 +25,14 @@ public static class InSharpMcpUnoServiceCollectionExtensions
             var root = window.Content ?? throw new InvalidOperationException("The Uno window has no content root.");
             return new UnoScreenshotProvider(root);
         });
-        services.AddSingleton<IPointerInputSimulator, UnoPointerInputSimulator>();
-        services.AddSingleton<IAutomationPeerInvoker, UnoAutomationPeerInvoker>();
+        services.AddSingleton<IPointerInputSimulator>(provider =>
+            new UnoPointerInputSimulator(window, provider.GetRequiredService<IUiDispatcher>()));
+        services.AddSingleton<IAutomationPeerInvoker>(provider =>
+        {
+            var root = window.Content ?? throw new InvalidOperationException("The Uno window has no content root.");
+            return new UnoAutomationPeerInvoker(root, provider.GetRequiredService<IUiDispatcher>());
+        });
+        services.AddSingleton<IAccessibilityTreeProvider, UnoAccessibilityTreeProvider>();
         return services;
     }
 }

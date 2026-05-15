@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
+    <Version>1.0.0</Version>
+    <Title>InSharpMcp Contracts</Title>
+    <Description>Shared contracts and result models for InSharpMcp desktop UI automation adapters.</Description>
   </PropertyGroup>
 
 </Project>

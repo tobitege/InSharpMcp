@@ -120,7 +120,7 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
         return CreateNode(element, identifier, limits, copiedChildren);
     }
 
-    private static (Visual Element, string Identifier)? Find(
+    internal static (Visual Element, string Identifier)? Find(
         Visual element,
         string elementIdentifier,
         string currentIdentifier,

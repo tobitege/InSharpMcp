@@ -1,7 +1,21 @@
 <Project>
   <PropertyGroup>
+    <Version Condition="'$(Version)' == ''">1.0.0</Version>
+    <Authors>tobitege</Authors>
+    <Company>tobitege</Company>
+    <Product>InSharpMcp</Product>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/tobitege/InSharpMcp</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/tobitege/InSharpMcp.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>mcp;automation;desktop;dotnet;ui-testing</PackageTags>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsPackable)' == 'true'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
 </Project>

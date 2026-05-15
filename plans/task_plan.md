@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 13: GitHub README and user manual
+Phase 15: Public input and default-action wiring
 
 ## Phases
 
@@ -36,18 +36,18 @@ Phase 13: GitHub README and user manual
 - [x] Commit tested harness work
 - **Status:** complete
 
-### Phase 3: Uno Adapter MVP
+### Phase 3: Uno Adapter
 - [x] Create `InSharpMcp.Adapters.Uno`
 - [x] Implement `UnoUiDispatcher`
 - [x] Implement bounded `UnoVisualTreeInspector`
 - [x] Add visual tree and metadata tools
-- [x] Add tests for limits, truncation, unsupported behavior, and queueing
-- [x] Commit tested Uno MVP work
+- [x] Add tests for limits, truncation, structured unsupported behavior, and queueing
+- [x] Commit tested Uno adapter work
 - **Status:** complete
 
 ### Phase 4: Screenshot and DataContext Metadata
 - [x] Implement supported Windows screenshot capture and MCP image-content shape
-- [x] Return explicit unsupported result for Desktop/Skia screenshot until validated
+- [x] Return explicit unsupported result for Desktop/Skia screenshot until a validated backend path exists
 - [x] Implement bounded non-recursive DataContext metadata
 - [x] Add tests for redaction, caps, image/error shapes, and concurrency
 - [x] Commit tested screenshot/DataContext work
@@ -89,7 +89,7 @@ Phase 13: GitHub README and user manual
 - **Status:** complete
 
 ### Phase 9: Final Verification and Handoff
-- [x] Map every `plans/PLAN.md` requirement to implementation or documented allowed unsupported/TBD behavior
+- [x] Map every `plans/PLAN.md` requirement to implementation or documented allowed structured unsupported behavior
 - [x] Run final build/test suite
 - [x] Confirm no assistant-started processes are left running
 - [x] Confirm final git working tree is clean after final commit
@@ -136,6 +136,32 @@ Phase 13: GitHub README and user manual
 - [x] Verify Markdown/source consistency and commit the documentation slice
 - **Status:** complete
 
+### Phase 14: Adapter Completeness Wording and Release Packaging
+- [x] Treat Uno, Avalonia, and WinForms as first-class adapter packages in planning and docs
+- [x] Remove misleading foundation-only wording from current plan/progress surfaces
+- [x] Keep structured unsupported paths documented only where `plans/PLAN.md` requires a proven public platform path
+- [x] Ensure NuGet package versions are owned by each packable adapter/core project
+- [x] Ensure demo release packaging includes Uno, Avalonia, and WinForms demo builds
+- **Status:** complete
+
+### Phase 15: Public Input and Default-Action Wiring
+- [x] Replace WinForms pointer/key/text unsupported stubs with native Windows input injection
+- [x] Replace Avalonia pointer/key/text unsupported stubs with native Windows input injection from Avalonia screen coordinates
+- [x] Replace Uno key/text unsupported stubs with native Windows input injection
+- [x] Add Uno Windows pointer input through native HWND client-to-screen translation where available
+- [x] Wire Avalonia default action invocation through public `ICommandSource.Command`
+- [x] Wire Uno default action invocation through public `ButtonBase.Command`
+- [x] Keep only backend/platform paths without a proven public implementation as structured `unsupported`
+- [x] Add focused tests for non-destructive input forwarding and command invocation
+- **Status:** complete
+
+#### Remaining Intentional Structured Unsupported Paths
+- Uno Desktop/Skia screenshot remains structured `unsupported` until a validated backend-specific screenshot path exists.
+- Uno Desktop/Skia pointer click remains structured `unsupported` until a validated backend-specific screen-coordinate path exists.
+- Uno default action invocation returns structured `unsupported` for elements that do not expose `ButtonBase.Command`.
+- Avalonia default action invocation returns structured `unsupported` for elements that do not expose `ICommandSource.Command`.
+- WinForms default action invocation returns structured `unsupported` for elements that do not expose `IButtonControl`.
+
 ## Key Questions
 1. Which package-management style does this repository currently use?
 2. Which test framework is already present or most consistent with the repository?
@@ -150,6 +176,8 @@ Phase 13: GitHub README and user manual
 | Treat Avalonia/WinForms as validation-gated | `plans/PLAN.md` says these adapters are added only when validation hosts are available. |
 | Build real framework demos from installed templates | `dotnet new list` shows installed Uno, Avalonia, and WinForms templates, so demo scaffolding can be validated locally. |
 | Implement Avalonia/WinForms now that demos exist | The previous validation gate is satisfied by the Phase 11 demo hosts. |
+| Implement input only through native platform input APIs | Pointer/key/text paths now use Windows native input injection instead of fabricated framework events. |
+| Implement default actions only through public command/button contracts | Avalonia uses `ICommandSource.Command`, Uno uses `ButtonBase.Command`, and WinForms uses `IButtonControl.PerformClick()`. |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -168,6 +196,8 @@ Phase 13: GitHub README and user manual
 | WinForms invoker initially targeted `ButtonBase.PerformClick()` | 1 | Switched to the public `IButtonControl.PerformClick()` contract. |
 | Avalonia dispatcher async overload returned `Task<T>` directly | 1 | Removed the extra `GetTask()` from the async dispatcher overload. |
 | New test code used a stale `UiTreeSnapshot` named parameter and an unshown WinForms button | 1 | Updated the parameter name and showed the form in the STA test before invoking the default action. |
+| Native input injector method-group overload was ambiguous for `Enumerable.Select` | 1 | Replaced the method-group calls with explicit static lambdas. |
+| Avalonia automation invoker missed the `Avalonia.Visual` namespace import | 1 | Added the required `Avalonia` namespace import and rebuilt successfully. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.

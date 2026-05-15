@@ -1,18 +1,60 @@
 # InSharpMcp
 
+<p align="center">
+  <img src="architecture.png" alt="InSharpMcp architecture diagram" width="800">
+</p>
+
+<p align="center">
+  <strong>Framework-independent MCP automation for .NET desktop apps.</strong><br>
+  Inspect UI, query elements, capture supported screenshots, trace tool calls, and route actions through framework adapters.
+</p>
+
+<table align="center">
+  <tr>
+    <td align="center"><strong>Core</strong><br><code>InSharpMcp</code> broker</td>
+    <td align="center"><strong>Adapters</strong><br>Uno, Avalonia, WinForms</td>
+    <td align="center"><strong>Transports</strong><br>stdio and HTTP</td>
+    <td align="center"><strong>Tests</strong><br>xUnit projects</td>
+  </tr>
+</table>
+
 InSharpMcp is a framework-independent MCP automation layer for .NET desktop applications. It gives an MCP client a bounded, structured way to inspect a running app, query UI elements, capture screenshots, read safe metadata, collect recent events, start traces, run simple assertions, and invoke carefully gated interaction tools.
 
 The core package does not reference Uno, Avalonia, WinForms, WPF, WinUI, or any other UI framework. UI frameworks plug in through small adapter packages that implement shared contracts from `InSharpMcp.Contracts`.
 
 This repository currently contains the core broker, shared contracts, Uno, Avalonia, and WinForms adapters, adapter tests, and demo apps for the three planned environments.
 
+## Table of Contents
+
+- [Current Status](#current-status)
+- [Repository Layout](#repository-layout)
+- [Requirements](#requirements)
+- [Build and Test](#build-and-test)
+- [How InSharpMcp Works](#how-insharpmcp-works)
+- [Starting the Broker](#starting-the-broker)
+- [Registering an App Instance](#registering-an-app-instance)
+- [Adapter Capabilities](#adapter-capabilities)
+- [Interaction Behavior](#interaction-behavior)
+- [MCP Client Configuration](#mcp-client-configuration)
+- [Limits and Safety](#limits-and-safety)
+- [Security Model](#security-model)
+- [Selecting a Target App](#selecting-a-target-app)
+- [Selectors](#selectors)
+- [Tool Manual](#tool-manual)
+- [Data Returned by Inspection Tools](#data-returned-by-inspection-tools)
+- [Development Workflow](#development-workflow)
+- [Known Limitations](#known-limitations)
+- [License](#license)
+
 ## Current Status
 
 The project is source-ready but not published as NuGet packages from this repository. Use project references while developing against it.
 
-The verified implementation includes the `InSharpMcp` core, `InSharpMcp.Contracts`, `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, and `InSharpMcp.Adapters.WinForms`. The final verification run passed 69 tests, and the demo solution builds all three planned environments. The repository currently pins Avalonia to `11.3.9`; the Avalonia adapter has also been compile-checked against Avalonia `12.0.3`, so the current implementation does not require separate v11 and v12 adapter source versions.
+The verified implementation includes the `InSharpMcp` core, `InSharpMcp.Contracts`, `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, and `InSharpMcp.Adapters.WinForms`. The repository currently pins Uno Platform through `Uno.Sdk/6.5.33`. It pins Avalonia to `11.3.9`; the Avalonia adapter has also been compile-checked against Avalonia `12.0.3`, so the current implementation does not require separate v11 and v12 adapter source versions.
 
-Some platform behaviors intentionally return a structured `unsupported` result. InSharpMcp does not fake pointer, keyboard, or text input by raising framework events manually. Those tools are only implemented when there is a proven public platform path.
+Pointer, keyboard, text input, and default actions are implemented where the adapters have validated public platform paths. Remaining `unsupported` results are specific backend or element-shape limits.
+
+The repository includes xUnit test projects for the broker, shared adapter contracts, and framework adapters.
 
 ## Repository Layout
 
@@ -22,9 +64,9 @@ The server code lives under `mcp/server`.
 |------|---------|
 | `mcp/server/InSharpMcp.Contracts` | Shared result models, limit models, selectors, screenshots, traces, assertions, and adapter interfaces. |
 | `mcp/server/InSharpMcp` | MCP broker/core library, routing, registry, security, limits, event log, trace store, selectors, assertions, and `ism_` tools. |
-| `mcp/server/InSharpMcp.Adapters.Uno` | Uno/WinUI adapter for dispatcher, visual tree, metadata, DataContext, screenshots where supported, and explicit unsupported interaction paths. |
-| `mcp/server/InSharpMcp.Adapters.Avalonia` | Avalonia adapter for dispatcher, visual tree, metadata, DataContext, screenshots for measured controls, accessibility delegation, and explicit unsupported interaction paths. |
-| `mcp/server/InSharpMcp.Adapters.WinForms` | WinForms adapter for dispatcher, control tree, metadata, Tag-based DataContext, screenshots, accessibility delegation, and button default action invocation. |
+| `mcp/server/InSharpMcp.Adapters.Uno` | Uno/WinUI adapter for dispatcher, visual tree, metadata, DataContext, screenshots where supported, accessibility delegation, Windows input, and command-backed default action invocation. |
+| `mcp/server/InSharpMcp.Adapters.Avalonia` | Avalonia adapter for dispatcher, visual tree, metadata, DataContext, screenshots for measured controls, accessibility delegation, Windows input, and command-backed default action invocation. |
+| `mcp/server/InSharpMcp.Adapters.WinForms` | WinForms adapter for dispatcher, control tree, metadata, Tag-based DataContext, screenshots, accessibility delegation, Windows input, and button default action invocation. |
 | `mcp/server/tests` | Core tests, shared adapter contract tests, and framework adapter tests. |
 | `demos` | Uno, Avalonia, and WinForms demo apps for manual adapter validation. |
 | `plans` | Design plan, implementation notes, and verification record. |
@@ -156,7 +198,7 @@ var registration = provider.GetRequiredService<AppRegistrationService>()
 
 Dispose the returned registration when the host closes. That unregisters the app instance and removes the active client connection.
 
-Avalonia hosts use `AddInSharpMcpAvaloniaAdapter(window, ...)`. Uno hosts use `AddInSharpMcpUnoAdapter(window, ...)`. The current Uno adapter extension does not register an `IAccessibilityTreeProvider`, so an in-process Uno host that constructs `InProcessAppInstanceClient` must provide an accessibility provider or an explicit unsupported provider.
+Avalonia hosts use `AddInSharpMcpAvaloniaAdapter(window, ...)`. Uno hosts use `AddInSharpMcpUnoAdapter(window, ...)`. WinForms hosts use `AddInSharpMcpWinFormsAdapter(form, ...)`.
 
 ## Adapter Capabilities
 
@@ -164,11 +206,21 @@ The adapters share the same contract shape, but platform support is intentionall
 
 | Adapter | Implemented |
 |---------|-------------|
-| Uno | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, Windows screenshot capture, unsupported pointer/key/text input, unsupported automation peer invocation. |
-| Avalonia | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, screenshot capture for measured controls, accessibility tree delegation, unsupported pointer/key/text input, unsupported automation peer invocation. |
-| WinForms | UI dispatch, app info/close, bounded control tree, element metadata, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, accessibility tree delegation, unsupported pointer/key/text input, default action invocation for `IButtonControl`. |
+| Uno | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, Windows screenshot capture, accessibility tree delegation, Windows pointer/key/text input through native input APIs, command-backed `ButtonBase` default action invocation. |
+| Avalonia | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, screenshot capture for measured controls, accessibility tree delegation, Windows pointer/key/text input through native input APIs, command-backed default action invocation through `ICommandSource`. |
+| WinForms | UI dispatch, app info/close, bounded control tree, element metadata, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, accessibility tree delegation, Windows pointer/key/text input through native input APIs, default action invocation for `IButtonControl`. |
 
-Unsupported results are normal tool outcomes. They let MCP clients distinguish "this platform path is not implemented" from a failure in the app.
+Unsupported results are normal tool outcomes. They let MCP clients distinguish "this platform path has no validated adapter implementation" from a failure in the app.
+
+## Interaction Behavior
+
+Pointer, keyboard, text, and default-action tools are protected operations. They are routed through the selected app instance, run on the adapter dispatcher where UI state is needed, and use structured `ToolResult` outcomes.
+
+Pointer coordinates are adapter-root-relative. WinForms translates them with `Control.PointToScreen`. Avalonia translates them with Avalonia `PointToScreen`. Uno translates them through the Windows target's native HWND when available; Uno Desktop/Skia pointer clicks remain `unsupported` until a validated backend-specific screen-coordinate path exists.
+
+Key and text input use native Windows input APIs instead of fabricated framework events. Key presses accept a single alphanumeric character, `F1` through `F12`, or one of `enter`, `escape`, `tab`, `backspace`, `delete`, `space`, `arrowup`, `arrowdown`, `arrowleft`, `arrowright`, `home`, `end`, `pageup`, and `pagedown`. Modifiers are `alt`, `control`/`ctrl`, `shift`, and `meta`/`win`. Text input is capped by the interaction validator.
+
+Default actions use public control contracts only. Uno invokes `ButtonBase.Command`, Avalonia invokes `ICommandSource.Command`, and WinForms invokes `IButtonControl.PerformClick()`. Elements without those public action surfaces return structured `unsupported`.
 
 ## MCP Client Configuration
 
@@ -202,7 +254,7 @@ Only inspection limits are client-configurable. Clients cannot change timeout, q
 
 ## Limits and Safety
 
-InSharpMcp treats UI inspection as bounded work. Defaults are `MaxDepth = 20`, `MaxNodes = 500`, `MaxTextCharacters = 64000`, `Timeout = 5 seconds`, and `QueueTimeout = 2 seconds`.
+Inspection tools limit how much UI data they read and return. Defaults are `MaxDepth = 20`, `MaxNodes = 500`, `MaxTextCharacters = 64000`, `Timeout = 5 seconds`, and `QueueTimeout = 2 seconds`.
 
 The server clamps requested values to the configured policy. Depth is clamped between 1 and 50, node count between 1 and 2000, and text characters between 1024 and 256000. Invalid values fall back to defaults.
 
@@ -316,13 +368,13 @@ The existing tests cover routing, target ambiguity, stale instances, HTTP author
 
 ## Known Limitations
 
-InSharpMcp currently provides source projects, not published packages.
+InSharpMcp currently provides source projects, NuGet packages are planned to come shortly.
 
 Out-of-process app discovery and app-to-broker transport are host integration responsibilities in the current implementation. The broker and routing abstractions are present, but a production host still needs to decide how app instances discover the broker and register an active client connection across process boundaries.
 
-Uno Desktop/Skia screenshot and input paths are intentionally unsupported until a validated backend-specific implementation exists. Avalonia pointer, keyboard, text input, and automation peer invocation are also unsupported for the same reason. WinForms pointer, keyboard, and text input are unsupported, while default action invocation is implemented for `IButtonControl`.
+Uno Desktop/Skia screenshot and pointer-click paths are intentionally unsupported until validated backend-specific implementations exist. Keyboard/text input uses native Windows input where available. Default action invocation is limited to public command/button patterns: Uno `ButtonBase.Command`, Avalonia `ICommandSource.Command`, and WinForms `IButtonControl.PerformClick()`.
 
-The file `plans/ADAPTER_VALIDATION.md` records an earlier validation-gate decision from before the demo hosts and additional adapters were implemented. The current implementation summary in `plans/IMPLEMENTATION_SUMMARY.md` reflects the newer state.
+The file `plans/ADAPTER_VALIDATION.md` records the current adapter validation status and remaining structured unsupported paths.
 
 ## License
 

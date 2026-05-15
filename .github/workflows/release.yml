@@ -1,0 +1,219 @@
+name: Release
+
+# Manual trigger only. Creates InSharpMcp NuGet packages and a GitHub release.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Git tag for this package release batch (e.g., packages-2026-05-15)'
+        required: true
+        type: string
+      description:
+        description: 'Optional release notes text'
+        required: false
+        type: string
+      skip_nuget:
+        description: 'Skip NuGet publish (useful for re-running failed releases)'
+        required: false
+        type: boolean
+        default: false
+      skip_tag:
+        description: 'Skip tag creation (assumes you already pushed the tag manually)'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.validate.outputs.tag }}
+    steps:
+      - name: Ensure branch is main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Releases can only be created from the main branch."
+          exit 1
+
+      - name: Validate release tag
+        id: validate
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          TAG="$RELEASE_TAG"
+          if [[ -z "$TAG" || "$TAG" =~ [[:space:]] ]]; then
+            echo "::error::Release tag must not be empty and must not contain whitespace."
+            exit 1
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Tag: $TAG"
+
+  build-and-pack:
+    needs: validate
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Verify package project versions are set
+        shell: pwsh
+        run: |
+          $projects = @(
+              'mcp/server/InSharpMcp.Contracts/InSharpMcp.Contracts.csproj',
+              'mcp/server/InSharpMcp/InSharpMcp.csproj',
+              'mcp/server/InSharpMcp.Adapters.Uno/InSharpMcp.Adapters.Uno.csproj',
+              'mcp/server/InSharpMcp.Adapters.Avalonia/InSharpMcp.Adapters.Avalonia.csproj',
+              'mcp/server/InSharpMcp.Adapters.WinForms/InSharpMcp.Adapters.WinForms.csproj'
+          )
+          foreach ($project in $projects) {
+              $version = dotnet msbuild $project -getProperty:Version
+              if ([string]::IsNullOrWhiteSpace($version)) {
+                  Write-Error "Package project $project does not define a Version."
+              }
+              "$project -> $version"
+          }
+
+      - name: Restore server solution
+        run: dotnet restore mcp/server/InSharpMcp.sln
+
+      - name: Build server solution
+        run: dotnet build mcp/server/InSharpMcp.sln -c Release --no-restore
+
+      - name: Test server solution
+        run: dotnet test mcp/server/InSharpMcp.sln -c Release --no-build
+
+      - name: Create NuGet packages
+        shell: pwsh
+        run: |
+          $projects = @(
+              'mcp/server/InSharpMcp.Contracts/InSharpMcp.Contracts.csproj',
+              'mcp/server/InSharpMcp/InSharpMcp.csproj',
+              'mcp/server/InSharpMcp.Adapters.Uno/InSharpMcp.Adapters.Uno.csproj',
+              'mcp/server/InSharpMcp.Adapters.Avalonia/InSharpMcp.Adapters.Avalonia.csproj',
+              'mcp/server/InSharpMcp.Adapters.WinForms/InSharpMcp.Adapters.WinForms.csproj'
+          )
+          foreach ($project in $projects) {
+              dotnet pack $project -c Release --no-restore -o ./artifacts
+          }
+
+      - name: Upload NuGet artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-packages
+          path: ./artifacts/*.nupkg
+
+  publish:
+    needs: [validate, build-and-pack]
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: ./release-artifacts
+
+      - name: Collect artifacts
+        shell: bash
+        run: |
+          mkdir -p ./final
+          find ./release-artifacts -name "*.nupkg" -exec cp {} ./final/ \;
+          echo "=== Release artifacts ==="
+          ls -la ./final/
+
+      - name: Publish to NuGet
+        if: ${{ inputs.skip_nuget != true }}
+        shell: bash
+        run: |
+          dotnet nuget push ./final/*.nupkg \
+            -k ${{ secrets.NUGET_API_KEY }} \
+            -s https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+          echo "Published to NuGet.org"
+
+      - name: Create and push tag
+        if: ${{ inputs.skip_tag != true }}
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ needs.validate.outputs.tag }}
+          git push origin ${{ needs.validate.outputs.tag }}
+          echo "Created tag: ${{ needs.validate.outputs.tag }}"
+
+      - name: Skip tag creation
+        if: ${{ inputs.skip_tag == true }}
+        run: echo "Skipping tag creation because the tag already exists."
+
+      - name: Build release notes
+        shell: bash
+        env:
+          RELEASE_DESCRIPTION: ${{ inputs.description }}
+        run: |
+          {
+            echo "## What's Changed"
+            echo ""
+            if [ -n "$RELEASE_DESCRIPTION" ]; then
+              printf '%s\n' "$RELEASE_DESCRIPTION"
+            else
+              echo "NuGet package release batch."
+            fi
+            echo ""
+            echo "---"
+            echo ""
+            echo "## NuGet Packages"
+            echo ""
+            echo "| Asset |"
+            echo "|-------|"
+            for package in ./final/*.nupkg; do
+              name="$(basename "$package")"
+              echo "| \`$name\` |"
+            done
+          } > release_notes.md
+
+          echo "=== Release Notes ==="
+          cat release_notes.md
+
+      - name: Load custom release notes
+        id: release_body
+        shell: bash
+        run: |
+          {
+            echo 'body<<EOF'
+            cat release_notes.md
+            echo ''
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.validate.outputs.tag }}
+          name: "${{ needs.validate.outputs.tag }}"
+          files: ./final/*
+          generate_release_notes: true
+          body: ${{ steps.release_body.outputs.body }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        shell: bash
+        run: |
+          echo "## Release Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag:** ${{ needs.validate.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release:** ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.validate.outputs.tag }}" >> $GITHUB_STEP_SUMMARY

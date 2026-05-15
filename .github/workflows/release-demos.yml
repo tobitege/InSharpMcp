@@ -1,0 +1,177 @@
+name: Release Demos
+
+# Manual trigger only. Creates a demo-only release with no NuGet publish.
+# Tags from main: demos-1.0.0.1, demos-1.0.0.2, etc.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to release from'
+        required: true
+        type: choice
+        options:
+          - main
+        default: main
+      description:
+        description: 'Optional: What changed in this release?'
+        required: false
+        type: string
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      demo_version: ${{ steps.version.outputs.demo_version }}
+      demo_suffix: ${{ steps.version.outputs.demo_suffix }}
+      tag: ${{ steps.version.outputs.tag }}
+      display_version: ${{ steps.version.outputs.display_version }}
+      branch: ${{ steps.version.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0  # Need full history for tags
+
+      - name: Determine version
+        id: version
+        run: |
+          # Get branch from input
+          BRANCH="${{ inputs.branch }}"
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "Branch: $BRANCH"
+
+          # Get demo base version from shared build metadata
+          DEMO_VERSION=$(sed -n "s/.*<Version Condition=\"'\\\$(Version)' == ''\">\\([^<]*\\)<\\/Version>.*/\\1/p" Directory.Build.props)
+          echo "demo_version=$DEMO_VERSION" >> $GITHUB_OUTPUT
+          echo "Demo base version: $DEMO_VERSION"
+
+          TAG_PREFIX="demos-${DEMO_VERSION}."
+
+          # Get the highest existing suffix, default to 0 if none exist
+          HIGHEST=$(git tag -l "${TAG_PREFIX}*" | sed "s/${TAG_PREFIX}//" | sort -n | tail -1)
+
+          if [ -z "$HIGHEST" ]; then
+            NEXT_SUFFIX=1
+            echo "First demo release for ${TAG_PREFIX%%.}"
+          else
+            NEXT_SUFFIX=$((HIGHEST + 1))
+            echo "Existing demo releases found, highest suffix: $HIGHEST"
+          fi
+
+          echo "demo_suffix=$NEXT_SUFFIX" >> $GITHUB_OUTPUT
+
+          TAG="${TAG_PREFIX}${NEXT_SUFFIX}"
+          DISPLAY="${DEMO_VERSION}.${NEXT_SUFFIX}"
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "display_version=$DISPLAY" >> $GITHUB_OUTPUT
+
+          echo "Will create release: $TAG"
+
+  build-demos:
+    needs: prepare
+    uses: ./.github/workflows/_build-demos.yml
+    with:
+      branch: ${{ inputs.branch }}
+    permissions:
+      contents: read
+
+  publish:
+    needs: [prepare, build-demos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: ./release-artifacts
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p ./final
+          find ./release-artifacts -name "*.zip" -exec cp {} ./final/ \;
+          echo "=== Release artifacts ==="
+          ls -la ./final/
+
+      - name: Create and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ needs.prepare.outputs.tag }}
+          git push origin ${{ needs.prepare.outputs.tag }}
+          echo "Created tag: ${{ needs.prepare.outputs.tag }}"
+
+      - name: Build release notes
+        env:
+          RELEASE_DESCRIPTION: ${{ inputs.description }}
+        run: |
+          {
+            echo "## Demo App Update"
+            echo ""
+
+            if [ -n "$RELEASE_DESCRIPTION" ]; then
+              echo "### What's Changed"
+              echo ""
+              printf '%s\n' "$RELEASE_DESCRIPTION"
+              echo ""
+            fi
+
+            echo "This is a demo-only release for InSharpMcp."
+            echo "The demo base version is **${{ needs.prepare.outputs.demo_version }}**."
+            echo "The Windows zip contains Avalonia, Uno, and WinForms demo builds."
+            echo ""
+            echo "### Downloads"
+            echo ""
+            echo "Self-contained executables - no .NET installation required!"
+            echo ""
+            echo "| Platform | Download |"
+            echo "|----------|----------|"
+            echo "| Windows x64 | \`InSharpMcp-Demos-Windows-x64.zip\` |"
+            echo ""
+            echo "---"
+            echo ""
+            echo "> NuGet packages are versioned independently by their own project files."
+          } > release_notes.md
+
+          echo "=== Release Notes ==="
+          cat release_notes.md
+
+      - name: Load release notes
+        id: release_body
+        run: |
+          {
+            echo 'body<<EOF'
+            cat release_notes.md
+            echo ''
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          name: "Demos ${{ needs.prepare.outputs.display_version }}"
+          files: ./final/*
+          body: ${{ steps.release_body.outputs.body }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## Demo Release Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag:** ${{ needs.prepare.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** ${{ needs.prepare.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Demo Base Version:** ${{ needs.prepare.outputs.demo_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Demo Suffix:** ${{ needs.prepare.outputs.demo_suffix }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release:** ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.prepare.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
