@@ -16,6 +16,7 @@
   - Added regression tests for ambiguous target rejection, stale selected instances, selected-instance dispatch, HTTP bearer auth, close queueing, and trace capture.
   - Added shared `NodeVisitBudget` and updated Uno visual-tree traversal to consume one global node budget across sibling branches.
   - Updated Uno snapshot node creation to honor the caller's text limit.
+  - Moved protected-tool authorization before target selection and added regression coverage for that policy.
 - Files created/modified:
   - `plans/task_plan.md`
   - `plans/findings.md`
@@ -92,6 +93,7 @@
 | Final verification | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 56 tests passed | Pass |
 | Phase 10 routed tool/auth slice | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 62 tests passed | Pass |
 | Phase 10 Uno bounds slice | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 63 tests passed | Pass |
+| Phase 10 protected auth ordering | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 64 tests passed | Pass |
 
 ### Phase 2: Adapter Contract Harness
 - **Status:** complete

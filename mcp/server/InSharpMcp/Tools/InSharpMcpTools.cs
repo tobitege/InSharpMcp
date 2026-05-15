@@ -119,12 +119,6 @@ public sealed class InSharpMcpTools
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var route = router.Select(target);
-        if (!route.Succeeded)
-        {
-            return Task.FromResult(route.Error!);
-        }
-
         var authorized = AuthorizeProtected(
             authorization,
             authorizationResolver,
@@ -133,6 +127,12 @@ public sealed class InSharpMcpTools
         if (!authorized.Success)
         {
             return Task.FromResult(authorized);
+        }
+
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
         }
 
         var limits = CreateCallLimits(limitPolicy, maxDepth: null, maxNodes, maxTextCharacters);
@@ -153,12 +153,6 @@ public sealed class InSharpMcpTools
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var route = router.Select(target);
-        if (!route.Succeeded)
-        {
-            return ToScreenshotResult(route.Error!);
-        }
-
         var authorized = AuthorizeProtected(
             authorization,
             authorizationResolver,
@@ -167,6 +161,12 @@ public sealed class InSharpMcpTools
         if (!authorized.Success)
         {
             return ToScreenshotResult(authorized);
+        }
+
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return ToScreenshotResult(route.Error!);
         }
 
         var started = DateTimeOffset.UtcNow;
@@ -310,16 +310,16 @@ public sealed class InSharpMcpTools
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var route = router.Select(target);
-        if (!route.Succeeded)
-        {
-            return Task.FromResult(route.Error!);
-        }
-
         var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_pointer_click", authorizationToken);
         if (!authorized.Success)
         {
             return Task.FromResult(authorized);
+        }
+
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
         }
 
         var validation = validator.ValidateCoordinates(x, y);
@@ -348,16 +348,16 @@ public sealed class InSharpMcpTools
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var route = router.Select(target);
-        if (!route.Succeeded)
-        {
-            return Task.FromResult(route.Error!);
-        }
-
         var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_key_press", authorizationToken);
         if (!authorized.Success)
         {
             return Task.FromResult(authorized);
+        }
+
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
         }
 
         var effectiveModifiers = modifiers ?? [];
@@ -386,16 +386,16 @@ public sealed class InSharpMcpTools
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var route = router.Select(target);
-        if (!route.Succeeded)
-        {
-            return Task.FromResult(route.Error!);
-        }
-
         var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_type_text", authorizationToken);
         if (!authorized.Success)
         {
             return Task.FromResult(authorized);
+        }
+
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
         }
 
         var validation = validator.ValidateText(text);
@@ -422,12 +422,6 @@ public sealed class InSharpMcpTools
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var route = router.Select(target);
-        if (!route.Succeeded)
-        {
-            return Task.FromResult(route.Error!);
-        }
-
         var authorized = AuthorizeProtected(
             authorization,
             authorizationResolver,
@@ -436,6 +430,12 @@ public sealed class InSharpMcpTools
         if (!authorized.Success)
         {
             return Task.FromResult(authorized);
+        }
+
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
         }
 
         return RunRecordedToolAsync(
@@ -455,16 +455,16 @@ public sealed class InSharpMcpTools
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var route = router.Select(target);
-        if (!route.Succeeded)
-        {
-            return Task.FromResult(route.Error!);
-        }
-
         var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_close", authorizationToken);
         if (!authorized.Success)
         {
             return Task.FromResult(authorized);
+        }
+
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
         }
 
         return RunRecordedToolAsync(

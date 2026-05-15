@@ -96,6 +96,27 @@ public sealed class RoutedToolRegressionTests
     }
 
     [Fact]
+    public async Task ProtectedTool_AuthorizesBeforeTargetSelection()
+    {
+        var router = ToolRoutingFixture.CreateRouter(
+            ToolRoutingFixture.CreateClient(),
+            ToolRoutingFixture.CreateDescriptor("instance-1"),
+            ToolRoutingFixture.CreateDescriptor("instance-2"));
+
+        var result = await InSharpMcpTools.PointerClick(
+            router,
+            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
+            new McpRequestAuthorizationResolver(),
+            new InteractionInputValidator(),
+            x: 1,
+            y: 1,
+            cancellationToken: CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal("unauthorized", result.ErrorCode);
+    }
+
+    [Fact]
     public async Task Close_RunsThroughSelectedClientUiQueue()
     {
         var queue = new RecordingUiOperationQueue();
