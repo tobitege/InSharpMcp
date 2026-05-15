@@ -44,6 +44,7 @@
 - New demo-app goal targets the three planned environments in `plans/PLAN.md`: `demos/demo.uno`, `demos/demo.avalonia`, and `demos/demo.winforms`.
 - Installed .NET templates include `unoapp`, `avalonia.app`, and `winforms`, so each demo can start from a framework-native template.
 - `demos/InSharpMcp.Demos.slnx` builds all three demo projects. The first aggregate build failed because Uno SDK version resolution could not see the nested `demo.uno/global.json`; setting the Uno demo project SDK to `Uno.Sdk/6.5.33` fixed the solution-level build.
+- The new adapter goal targets `InSharpMcp.Adapters.Avalonia` and `InSharpMcp.Adapters.WinForms`, which can now be validated because Phase 11 added buildable demo hosts for both frameworks.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -64,6 +65,7 @@
 | Document the Avalonia/WinForms validation blocker instead of adding unvalidated adapters | `plans/PLAN.md` explicitly gates those adapters on available validation hosts. |
 | Reopen implementation as Phase 10 instead of rewriting history | The workspace is clean and committed; remediation should be additive, tested, and committed in coherent slices. |
 | Add demos as Phase 11 | The prior phases are complete; demo apps are a separate delivery slice requested by the new goal. |
+| Add Avalonia/WinForms adapters as Phase 12 | The demo hosts satisfy the plan's validation gate for these framework adapters. |
 
 ## Issues Encountered
 | Issue | Resolution |

@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 11: Demo apps for planned environments
+Phase 12: Avalonia and WinForms adapters
 
 ## Phases
 
@@ -118,6 +118,17 @@ Phase 11: Demo apps for planned environments
 - [x] Commit coherent demo slices and finish with a clean working tree
 - **Status:** complete
 
+### Phase 12: Avalonia and WinForms Adapters
+- [ ] Create `InSharpMcp.Adapters.Avalonia`
+- [ ] Implement Avalonia app provider, UI dispatcher, visual tree inspector, screenshot provider, input/automation paths or explicit unsupported results, and DI extension
+- [ ] Create `InSharpMcp.Adapters.WinForms`
+- [ ] Implement WinForms app provider, UI dispatcher, tree inspector, screenshot provider, input/automation paths or explicit unsupported results, and DI extension
+- [ ] Add focused tests or contract checks for adapter behavior and limitations
+- [ ] Wire adapter projects into `mcp/server/InSharpMcp.sln` and central package management
+- [ ] Build each adapter, build demo solution, run full server tests
+- [ ] Update docs/planning summary and commit coherent slices
+- **Status:** in_progress
+
 ## Key Questions
 1. Which package-management style does this repository currently use?
 2. Which test framework is already present or most consistent with the repository?
@@ -131,6 +142,7 @@ Phase 11: Demo apps for planned environments
 | Commit after coherent tested slices | User requested frequent commits for features/steps. |
 | Treat Avalonia/WinForms as validation-gated | `plans/PLAN.md` says these adapters are added only when validation hosts are available. |
 | Build real framework demos from installed templates | `dotnet new list` shows installed Uno, Avalonia, and WinForms templates, so demo scaffolding can be validated locally. |
+| Implement Avalonia/WinForms now that demos exist | The previous validation gate is satisfied by the Phase 11 demo hosts. |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -144,6 +156,7 @@ Phase 11: Demo apps for planned environments
 | Accessibility tool test used a positional cancellation argument after a named argument | 1 | Made the cancellation argument named. |
 | Final review found core plan gaps despite passing tests | 1 | Reopened the implementation with Phase 10 remediation focused on routed broker dispatch, auth, tracing, close queueing, and Uno bounds. |
 | New goal could not be registered through the goal tool because the thread still reports an existing goal | 1 | Validated the new goal text at 2,196 characters and proceeded under the user request while recording Phase 11 in planning files. |
+| New adapter goal could not be registered through the goal tool because the thread still reports an existing goal | 1 | Validated the new goal text at 1,976 characters and proceeded under the user request while recording Phase 12 in planning files. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.
