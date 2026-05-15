@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 8 - Additional Framework Adapters
+Phase 9 - Final Verification and Handoff
 
 ## Phases
 
@@ -81,12 +81,12 @@ Phase 8 - Additional Framework Adapters
 - **Status:** complete
 
 ### Phase 8: Additional Framework Adapters
-- [ ] Add Avalonia adapter only when a validating host is available
-- [ ] Add WinForms adapter only when a validating host is available
-- [ ] Run shared adapter contract tests against each implemented adapter
-- [ ] Document any validation-host blocker instead of adding unverified implementation
-- [ ] Commit tested adapter work or documented blocker state
-- **Status:** in_progress
+- [x] Add Avalonia adapter only when a validating host is available
+- [x] Add WinForms adapter only when a validating host is available
+- [x] Run shared adapter contract tests against each implemented adapter
+- [x] Document any validation-host blocker instead of adding unverified implementation
+- [x] Commit tested adapter work or documented blocker state
+- **Status:** complete
 
 ### Phase 9: Final Verification and Handoff
 - [ ] Map every `plans/PLAN.md` requirement to implementation or documented allowed unsupported/TBD behavior
@@ -94,7 +94,7 @@ Phase 8 - Additional Framework Adapters
 - [ ] Confirm no assistant-started processes are left running
 - [ ] Confirm final git working tree is clean after final commit
 - [ ] Mark planning files complete
-- **Status:** pending
+- **Status:** in_progress
 
 ## Key Questions
 1. Which package-management style does this repository currently use?

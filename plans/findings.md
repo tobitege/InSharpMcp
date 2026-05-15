@@ -33,6 +33,7 @@
 - Event log entries are bounded and redact sensitive data keys before storage.
 - Protected interaction tools now authorize through `McpAuthorization`, validate input before dispatch, run through the UI queue where applicable, and record interaction event-log entries.
 - Trace start/stop uses a bounded in-memory trace store and assertion helpers return structured pass/fail `AssertionResult` data without throwing for normal failures.
+- Phase 8 found no Avalonia or WinForms validation host in the repository. Per `plans/PLAN.md`, those adapters are not added until a validating host is available.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -50,6 +51,7 @@
 | Implement selector matching over framework-neutral snapshots | It keeps the selector grammar independent from any adapter and makes query/wait behavior testable without a live UI. |
 | Use event-log entries as the initial trace surface for interaction tools | It provides auditable interaction result entries before the dedicated trace start/stop phase. |
 | Keep assertion helpers result-oriented rather than exception-oriented | Normal assertion failures are expected tool outcomes and should return structured data. |
+| Document the Avalonia/WinForms validation blocker instead of adding unvalidated adapters | `plans/PLAN.md` explicitly gates those adapters on available validation hosts. |
 
 ## Issues Encountered
 | Issue | Resolution |
