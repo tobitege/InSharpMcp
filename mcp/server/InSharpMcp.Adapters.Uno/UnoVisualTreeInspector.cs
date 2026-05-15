@@ -51,12 +51,27 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
     public Task<ToolResult> GetElementDataContextAsync(
         string elementIdentifier,
         ToolLimits limits,
-        CancellationToken cancellationToken)
-    {
-        _ = elementIdentifier;
-        _ = limits;
-        return Task.FromResult(ToolResult.Fail("DataContext inspection is implemented in the metadata phase.", "unsupported"));
-    }
+        CancellationToken cancellationToken) =>
+        _dispatcher.RunAsync(
+            token =>
+            {
+                token.ThrowIfCancellationRequested();
+                var match = Find(_root, elementIdentifier, "0", limits.MaxNodes, token);
+                if (match is null)
+                {
+                    return ToolResult.Fail("Element was not found.", "not_found");
+                }
+
+                if (match.Value.Element is not FrameworkElement { DataContext: { } dataContext })
+                {
+                    return ToolResult.Ok(
+                        "Element has no DataContext.",
+                        new DataContextMetadata("<null>", new Dictionary<string, object?>(), Truncated: false));
+                }
+
+                return ToolResult.Ok("DataContext metadata returned.", DataContextMetadataFactory.Create(dataContext, limits));
+            },
+            cancellationToken);
 
     private static UiElementNode? CopyBounded(
         DependencyObject element,
@@ -185,4 +200,5 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
             frameworkElement?.Visibility == Visibility.Visible,
             control?.IsEnabled);
     }
+
 }

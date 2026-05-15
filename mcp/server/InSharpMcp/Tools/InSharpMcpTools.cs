@@ -89,6 +89,32 @@ public sealed class InSharpMcpTools
             cancellationToken);
     }
 
+    [McpServerTool(Name = "ism_get_element_datacontext")]
+    public static Task<ToolResult> GetElementDataContext(
+        IUiTreeInspector inspector,
+        IUiOperationQueue uiQueue,
+        ToolLimitPolicyEvaluator limitPolicy,
+        string elementIdentifier,
+        int? maxNodes = null,
+        int? maxTextCharacters = null,
+        CancellationToken cancellationToken = default)
+    {
+        var limits = CreateCallLimits(limitPolicy, maxDepth: null, maxNodes, maxTextCharacters);
+        return uiQueue.RunAsync(
+            "get_element_datacontext",
+            token => inspector.GetElementDataContextAsync(elementIdentifier, limits, token),
+            limits,
+            cancellationToken);
+    }
+
+    [McpServerTool(Name = "ism_get_screenshot")]
+    public static async Task<ScreenshotResult> GetScreenshot(
+        IScreenshotProvider screenshotProvider,
+        CancellationToken cancellationToken = default)
+    {
+        return await screenshotProvider.CaptureScreenshotAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     private static ToolLimits CreateCallLimits(
         ToolLimitPolicyEvaluator limitPolicy,
         int? maxDepth,

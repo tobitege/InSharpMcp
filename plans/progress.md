@@ -58,6 +58,7 @@
 | Phase 1 verification completion | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 25 tests passed | Pass |
 | Phase 2 adapter contract harness | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 34 tests passed | Pass |
 | Phase 3 Uno adapter MVP | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 36 tests passed | Pass |
+| Phase 4 screenshot/DataContext | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 42 tests passed | Pass |
 
 ### Phase 2: Adapter Contract Harness
 - **Status:** complete
@@ -97,6 +98,28 @@
   - `plans/findings.md`
   - `plans/progress.md`
 
+### Phase 4: Screenshot and DataContext Metadata
+- **Status:** complete
+- Actions taken:
+  - Added `DataContextMetadata` and `DataContextMetadataFactory`.
+  - Implemented bounded, non-recursive DataContext metadata in `UnoVisualTreeInspector`.
+  - Added sensitive-name redaction and primitive/string-only property filtering.
+  - Implemented Windows-only Uno screenshot PNG capture using `RenderTargetBitmap` and PNG encoding.
+  - Kept Desktop/Skia screenshot as explicit `unsupported`.
+  - Added `ism_get_element_datacontext` and `ism_get_screenshot` tools.
+  - Added tests for DataContext redaction, truncation, property caps, screenshot result shape, and tool catalog discovery.
+- Files created/modified:
+  - `mcp/server/InSharpMcp.Contracts/DataContextMetadata.cs`
+  - `mcp/server/InSharpMcp.Contracts/DataContextMetadataFactory.cs`
+  - `mcp/server/InSharpMcp.Adapters.Uno/UnoScreenshotProvider.cs`
+  - `mcp/server/InSharpMcp.Adapters.Uno/UnoVisualTreeInspector.cs`
+  - `mcp/server/InSharpMcp/Tools/InSharpMcpTools.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/DataContextMetadataFactoryTests.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/VisualTreeToolTests.cs`
+  - `plans/task_plan.md`
+  - `plans/findings.md`
+  - `plans/progress.md`
+
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
 |-----------|-------|---------|------------|
@@ -106,12 +129,13 @@
 | 2026-05-15 | New xUnit project restore failed because template-generated package versions conflict with central package management | 1 | Removed package versions from the project file. |
 | 2026-05-15 | Uno adapter build failed on nullable `window.Content` passed to visual-tree inspector | 1 | Added an explicit non-null content-root guard. |
 | 2026-05-15 | Visual-tree metadata test expected a value below the policy minimum | 1 | Updated the expected value to the clamped minimum. |
+| 2026-05-15 | Non-Windows screenshot branch returned `Task<ScreenshotResult>` from an async method | 1 | Returned `ScreenshotResult` directly. |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 4 - Screenshot and DataContext Metadata. |
-| Where am I going? | Implement supported Windows screenshot shape and bounded DataContext metadata, with explicit unsupported Desktop/Skia behavior. |
+| Where am I? | Phase 5 - Selectors, Waits, Accessibility, and Events. |
+| Where am I going? | Implement structured selectors, bounded waits, accessibility tree support, and bounded event logs. |
 | What's the goal? | Fully implement `plans/PLAN.md` with verification evidence and a clean final working tree. |
 | What have I learned? | See `plans/findings.md`. |
-| What have I done? | Completed Phase 1, Phase 2, and Phase 3 with 36 passing tests and a building Uno adapter MVP. |
+| What have I done? | Completed Phase 1 through Phase 4 with 42 passing tests, including screenshot tool shape and bounded DataContext metadata. |

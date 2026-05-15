@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 4 - Screenshot and DataContext Metadata
+Phase 5 - Selectors, Waits, Accessibility, and Events
 
 ## Phases
 
@@ -46,12 +46,12 @@ Phase 4 - Screenshot and DataContext Metadata
 - **Status:** complete
 
 ### Phase 4: Screenshot and DataContext Metadata
-- [ ] Implement supported Windows screenshot capture and MCP image-content shape
-- [ ] Return explicit unsupported result for Desktop/Skia screenshot until validated
-- [ ] Implement bounded non-recursive DataContext metadata
-- [ ] Add tests for redaction, caps, image/error shapes, and concurrency
-- [ ] Commit tested screenshot/DataContext work
-- **Status:** in_progress
+- [x] Implement supported Windows screenshot capture and MCP image-content shape
+- [x] Return explicit unsupported result for Desktop/Skia screenshot until validated
+- [x] Implement bounded non-recursive DataContext metadata
+- [x] Add tests for redaction, caps, image/error shapes, and concurrency
+- [x] Commit tested screenshot/DataContext work
+- **Status:** complete
 
 ### Phase 5: Selectors, Waits, Accessibility, and Events
 - [ ] Implement structured JSON selectors and validation
@@ -61,7 +61,7 @@ Phase 4 - Screenshot and DataContext Metadata
 - [ ] Add bounded redacted event log capture
 - [ ] Add tests for selector parsing, ordering, waits, bounds, and redaction
 - [ ] Commit tested automation-platform work
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 6: Interaction Tools
 - [ ] Implement Windows pointer/key/text input only through proven platform APIs
@@ -117,6 +117,7 @@ Phase 4 - Screenshot and DataContext Metadata
 | xUnit template restore failed because versioned package references conflicted with central package management | 1 | Removed package versions from the new adapter contract test project before restore. |
 | Uno adapter DI registration treated nullable `window.Content` as non-null | 1 | Added explicit content-root guard before constructing `UnoVisualTreeInspector`. |
 | Visual-tree metadata test expected unclamped `MaxTextCharacters` | 1 | Updated the assertion to expect the configured policy minimum. |
+| Desktop/Skia screenshot branch returned `Task<ScreenshotResult>` inside an async method | 1 | Returned `ScreenshotResult` directly from the non-Windows branch. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.

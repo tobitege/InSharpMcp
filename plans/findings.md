@@ -28,6 +28,7 @@
 - Shared adapter contract harness now uses framework-neutral `UiElementNode`, `UiTreeSnapshot`, and `ElementMetadata` records.
 - `Uno.Sdk` version `6.5.33` exists on NuGet and restores for the adapter project.
 - `InSharpMcp.Adapters.Uno` builds for `net9.0-windows10.0.19041` and `net9.0-desktop` in the current environment.
+- DataContext metadata is produced by a shared `DataContextMetadataFactory`, making redaction/cap behavior testable outside UI framework code.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -41,6 +42,7 @@
 | Use reflection over `InSharpMcpTools` for the initial tool catalog test | It verifies SDK attributes and `ism_` tool names without starting a long-lived MCP server process. |
 | Put fake adapters in `InSharpMcp.AdapterContractTests` first | The harness validates contract expectations without adding test-only helpers to production packages. |
 | Leave Uno screenshot, input, and automation peer invocation as explicit unsupported results until their later plan phases | Phase 3 only requires dispatcher, visual-tree inspector, metadata, and unsupported-path behavior; later phases add screenshot/DataContext/input details. |
+| Put DataContext reflection in contracts instead of the Uno adapter | The bounding/redaction behavior is framework-independent and can be tested without a live UI. |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -51,6 +53,7 @@
 | xUnit template restore failed under central package management for the new adapter contract test project. | Removed generated package versions and restored through the solution. |
 | Uno adapter registration needed a non-null content root for `UnoVisualTreeInspector`. | Added an explicit guard that reports missing window content at DI resolution time. |
 | Visual-tree tool test forgot policy minimum clamping for `MaxTextCharacters`. | Corrected the expected value to `1024`. |
+| Non-Windows screenshot branch returned the wrong type from an async method. | Returned `ScreenshotResult` directly. |
 
 ## Resources
 - `plans/PLAN.md`
@@ -61,3 +64,4 @@
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 25 tests after completing Phase 1 verification coverage.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 34 tests after adding Phase 2 adapter contract harness.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 36 tests after adding the Uno adapter MVP and visual-tree/metadata tools.
+- `dotnet test mcp/server/InSharpMcp.sln` passed with 42 tests after adding screenshot tool shape and DataContext metadata redaction/cap tests.

@@ -20,7 +20,11 @@ public static class InSharpMcpUnoServiceCollectionExtensions
             return new UnoVisualTreeInspector(root, provider.GetRequiredService<IUiDispatcher>());
         });
         services.AddSingleton<IAppProvider>(_ => new UnoAppProvider(window, appName, appVersion, platformTarget));
-        services.AddSingleton<IScreenshotProvider, UnoScreenshotProvider>();
+        services.AddSingleton<IScreenshotProvider>(_ =>
+        {
+            var root = window.Content ?? throw new InvalidOperationException("The Uno window has no content root.");
+            return new UnoScreenshotProvider(root);
+        });
         services.AddSingleton<IPointerInputSimulator, UnoPointerInputSimulator>();
         services.AddSingleton<IAutomationPeerInvoker, UnoAutomationPeerInvoker>();
         return services;

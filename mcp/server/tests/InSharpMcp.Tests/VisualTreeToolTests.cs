@@ -47,6 +47,39 @@ public sealed class VisualTreeToolTests
         Assert.Equal("root", inspector.LastElementIdentifier);
     }
 
+    [Fact]
+    public async Task GetElementDataContext_UsesNodeAndTextLimits()
+    {
+        var inspector = new RecordingTreeInspector();
+        using var queue = new UiOperationQueue();
+        var policy = new ToolLimitPolicyEvaluator();
+
+        var result = await InSharpMcpTools.GetElementDataContext(
+            inspector,
+            queue,
+            policy,
+            "root",
+            maxNodes: 2,
+            maxTextCharacters: 2048,
+            CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal(2, inspector.LastLimits?.MaxNodes);
+        Assert.Equal(2048, inspector.LastLimits?.MaxTextCharacters);
+        Assert.Equal("root", inspector.LastElementIdentifier);
+    }
+
+    [Fact]
+    public async Task GetScreenshot_ReturnsProviderResult()
+    {
+        var provider = new RecordingScreenshotProvider();
+
+        var result = await InSharpMcpTools.GetScreenshot(provider, CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal([0x89, 0x50, 0x4E, 0x47], result.PngBytes);
+    }
+
     private sealed class RecordingTreeInspector : IUiTreeInspector
     {
         public ToolLimits? LastLimits { get; private set; }
@@ -78,10 +111,21 @@ public sealed class VisualTreeToolTests
             ToolLimits limits,
             CancellationToken cancellationToken)
         {
-            _ = elementIdentifier;
-            _ = limits;
             cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(ToolResult.Fail("unsupported", "unsupported"));
+            LastElementIdentifier = elementIdentifier;
+            LastLimits = limits;
+            return Task.FromResult(ToolResult.Ok(
+                "ok",
+                new DataContextMetadata("SampleViewModel", new Dictionary<string, object?>(), Truncated: false)));
+        }
+    }
+
+    private sealed class RecordingScreenshotProvider : IScreenshotProvider
+    {
+        public Task<ScreenshotResult> CaptureScreenshotAsync(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new ScreenshotResult(true, [0x89, 0x50, 0x4E, 0x47], "ok"));
         }
     }
 }
