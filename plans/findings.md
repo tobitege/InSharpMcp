@@ -35,6 +35,7 @@
 - Trace start/stop uses a bounded in-memory trace store and assertion helpers return structured pass/fail `AssertionResult` data without throwing for normal failures.
 - Phase 8 found no Avalonia or WinForms validation host in the repository. Per `plans/PLAN.md`, those adapters are not added until a validating host is available.
 - Final verification passed with 56 tests. `plans/IMPLEMENTATION_SUMMARY.md` maps the implemented scope and validation-gated scope.
+- Follow-up review found the prior completion state was premature: most tools bypass target selection, HTTP authorization is not transport-aware, registered endpoints are not mapped to executable app operations, traces are not populated by real tool execution, `ism_close` bypasses the queue, and Uno lookup/text limits are incomplete.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -53,6 +54,7 @@
 | Use event-log entries as the initial trace surface for interaction tools | It provides auditable interaction result entries before the dedicated trace start/stop phase. |
 | Keep assertion helpers result-oriented rather than exception-oriented | Normal assertion failures are expected tool outcomes and should return structured data. |
 | Document the Avalonia/WinForms validation blocker instead of adding unvalidated adapters | `plans/PLAN.md` explicitly gates those adapters on available validation hosts. |
+| Reopen implementation as Phase 10 instead of rewriting history | The workspace is clean and committed; remediation should be additive, tested, and committed in coherent slices. |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -65,6 +67,7 @@
 | Visual-tree tool test forgot policy minimum clamping for `MaxTextCharacters`. | Corrected the expected value to `1024`. |
 | Non-Windows screenshot branch returned the wrong type from an async method. | Returned `ScreenshotResult` directly. |
 | Accessibility tool test mixed named and positional arguments. | Changed the cancellation token argument to named form. |
+| Review found missing routed app execution and auth integration. | Added Phase 10 remediation scope before code changes. |
 
 ## Resources
 - `plans/PLAN.md`

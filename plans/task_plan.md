@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Complete
+Remediation Phase 10: Review-critical gaps
 
 ## Phases
 
@@ -96,6 +96,17 @@ Complete
 - [x] Mark planning files complete
 - **Status:** complete
 
+### Phase 10: Review-critical Remediation
+- [ ] Add routed target dispatch for UI, screenshot, event-log, trace, assertion, and interaction tools
+- [ ] Add transport-aware authorization for protected tools, including HTTP request token extraction
+- [ ] Add an app-instance client/connection layer so selected registry instances map to executable adapter operations
+- [ ] Record trace entries from actual tool execution instead of requiring manual trace-store writes
+- [ ] Ensure `ism_close` runs through the selected app UI operation path
+- [ ] Fix Uno visual-tree limit enforcement for lookup and snapshot text caps
+- [ ] Add tests proving routing, ambiguity/stale errors, HTTP/stdio auth behavior, trace recording, close queueing, and Uno bounds
+- [ ] Run full verification and commit coherent remediation slices
+- **Status:** in_progress
+
 ## Key Questions
 1. Which package-management style does this repository currently use?
 2. Which test framework is already present or most consistent with the repository?
@@ -119,6 +130,7 @@ Complete
 | Visual-tree metadata test expected unclamped `MaxTextCharacters` | 1 | Updated the assertion to expect the configured policy minimum. |
 | Desktop/Skia screenshot branch returned `Task<ScreenshotResult>` inside an async method | 1 | Returned `ScreenshotResult` directly from the non-Windows branch. |
 | Accessibility tool test used a positional cancellation argument after a named argument | 1 | Made the cancellation argument named. |
+| Final review found core plan gaps despite passing tests | 1 | Reopened the implementation with Phase 10 remediation focused on routed broker dispatch, auth, tracing, close queueing, and Uno bounds. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.
