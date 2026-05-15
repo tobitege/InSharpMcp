@@ -119,15 +119,15 @@ Phase 12: Avalonia and WinForms adapters
 - **Status:** complete
 
 ### Phase 12: Avalonia and WinForms Adapters
-- [ ] Create `InSharpMcp.Adapters.Avalonia`
-- [ ] Implement Avalonia app provider, UI dispatcher, visual tree inspector, screenshot provider, input/automation paths or explicit unsupported results, and DI extension
-- [ ] Create `InSharpMcp.Adapters.WinForms`
-- [ ] Implement WinForms app provider, UI dispatcher, tree inspector, screenshot provider, input/automation paths or explicit unsupported results, and DI extension
-- [ ] Add focused tests or contract checks for adapter behavior and limitations
-- [ ] Wire adapter projects into `mcp/server/InSharpMcp.sln` and central package management
-- [ ] Build each adapter, build demo solution, run full server tests
-- [ ] Update docs/planning summary and commit coherent slices
-- **Status:** in_progress
+- [x] Create `InSharpMcp.Adapters.Avalonia`
+- [x] Implement Avalonia app provider, UI dispatcher, visual tree inspector, screenshot provider, input/automation paths or explicit unsupported results, and DI extension
+- [x] Create `InSharpMcp.Adapters.WinForms`
+- [x] Implement WinForms app provider, UI dispatcher, tree inspector, screenshot provider, input/automation paths or explicit unsupported results, and DI extension
+- [x] Add focused tests or contract checks for adapter behavior and limitations
+- [x] Wire adapter projects into `mcp/server/InSharpMcp.sln` and central package management
+- [x] Build each adapter, build demo solution, run full server tests
+- [x] Update docs/planning summary and commit coherent slices
+- **Status:** complete
 
 ## Key Questions
 1. Which package-management style does this repository currently use?
@@ -157,6 +157,10 @@ Phase 12: Avalonia and WinForms adapters
 | Final review found core plan gaps despite passing tests | 1 | Reopened the implementation with Phase 10 remediation focused on routed broker dispatch, auth, tracing, close queueing, and Uno bounds. |
 | New goal could not be registered through the goal tool because the thread still reports an existing goal | 1 | Validated the new goal text at 2,196 characters and proceeded under the user request while recording Phase 11 in planning files. |
 | New adapter goal could not be registered through the goal tool because the thread still reports an existing goal | 1 | Validated the new goal text at 1,976 characters and proceeded under the user request while recording Phase 12 in planning files. |
+| Parallel adapter builds contended for `InSharpMcp.Contracts.dll` | 1 | Rebuilt adapters sequentially; both adapter projects passed with 0 warnings and 0 errors. |
+| WinForms invoker initially targeted `ButtonBase.PerformClick()` | 1 | Switched to the public `IButtonControl.PerformClick()` contract. |
+| Avalonia dispatcher async overload returned `Task<T>` directly | 1 | Removed the extra `GetTask()` from the async dispatcher overload. |
+| New test code used a stale `UiTreeSnapshot` named parameter and an unshown WinForms button | 1 | Updated the parameter name and showed the form in the STA test before invoking the default action. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.

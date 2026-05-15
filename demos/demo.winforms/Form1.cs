@@ -1,11 +1,18 @@
+using InSharpMcp.Adapters.WinForms;
+using Microsoft.Extensions.DependencyInjection;
+
 namespace InSharpMcp.Demo.WinForms;
 
 public partial class Form1 : Form
 {
+    private readonly ServiceProvider _mcpServices;
+
     public Form1()
     {
         InitializeComponent();
         BuildDemoSurface();
+        _mcpServices = BuildMcpServices();
+        FormClosed += (_, _) => _mcpServices.Dispose();
     }
 
     private void BuildDemoSurface()
@@ -164,5 +171,16 @@ public partial class Form1 : Form
             Dock = DockStyle.Fill,
             Height = 40,
         };
+    }
+
+    private ServiceProvider BuildMcpServices()
+    {
+        var services = new ServiceCollection();
+        services.AddInSharpMcpWinFormsAdapter(
+            this,
+            "InSharpMcp WinForms Demo",
+            typeof(Form1).Assembly.GetName().Version?.ToString() ?? "0.0.0",
+            "WinForms");
+        return services.BuildServiceProvider();
     }
 }

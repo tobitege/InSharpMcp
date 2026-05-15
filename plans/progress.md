@@ -3,13 +3,31 @@
 ## Session: 2026-05-15
 
 ### Phase 12: Avalonia and WinForms Adapters
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - Validated the new adapter goal objective with Goalcraft at 1,976 characters.
   - Confirmed the goal tool would not create a second durable goal record in this thread, then continued under the user request.
   - Confirmed the working tree was clean before Phase 12.
   - Reopened planning files with Phase 12 adapter scope.
+  - Created `InSharpMcp.Adapters.Avalonia`.
+  - Implemented Avalonia UI dispatching, visual-tree inspection, DataContext metadata, screenshot capture, app close, accessibility delegation, DI registration, and explicit unsupported input/automation results.
+  - Created `InSharpMcp.Adapters.WinForms`.
+  - Implemented WinForms UI dispatching, control-tree inspection, Tag-based DataContext metadata, PNG screenshots, app close, accessibility delegation, DI registration, explicit unsupported pointer/key/text input, and `IButtonControl` default action invocation.
+  - Wired both adapter projects into `mcp/server/InSharpMcp.sln`.
+  - Wired Avalonia and WinForms demo apps to reference and register their adapter services.
+  - Added focused Avalonia and WinForms adapter test projects.
+  - Verified adapter builds, server solution build, demo solution build, and full server tests.
 - Files created/modified:
+  - `Directory.Packages.props`
+  - `demos/demo.avalonia/InSharpMcp.Demo.Avalonia.csproj`
+  - `demos/demo.avalonia/MainWindow.axaml.cs`
+  - `demos/demo.winforms/InSharpMcp.Demo.WinForms.csproj`
+  - `demos/demo.winforms/Form1.cs`
+  - `mcp/server/InSharpMcp.sln`
+  - `mcp/server/InSharpMcp.Adapters.Avalonia/*`
+  - `mcp/server/InSharpMcp.Adapters.WinForms/*`
+  - `mcp/server/tests/InSharpMcp.Adapters.Avalonia.Tests/*`
+  - `mcp/server/tests/InSharpMcp.Adapters.WinForms.Tests/*`
   - `plans/task_plan.md`
   - `plans/findings.md`
   - `plans/progress.md`
@@ -140,6 +158,11 @@
 | Demo Uno desktop build | `dotnet build demos/demo.uno/InSharpMcp.Demo.Uno/InSharpMcp.Demo.Uno.csproj -f net9.0-desktop` | Build passes | 0 errors | Pass |
 | Demo solution build | `dotnet build demos/InSharpMcp.Demos.slnx` | Build passes | 0 warnings, 0 errors | Pass |
 | Phase 11 server regression suite | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 64 tests passed | Pass |
+| Phase 12 WinForms adapter build | `dotnet build mcp/server/InSharpMcp.Adapters.WinForms/InSharpMcp.Adapters.WinForms.csproj` | Build passes | 0 warnings, 0 errors | Pass |
+| Phase 12 Avalonia adapter build | `dotnet build mcp/server/InSharpMcp.Adapters.Avalonia/InSharpMcp.Adapters.Avalonia.csproj` | Build passes | 0 warnings, 0 errors | Pass |
+| Phase 12 server solution build | `dotnet build mcp/server/InSharpMcp.sln` | Build passes | 0 warnings, 0 errors | Pass |
+| Phase 12 demo solution build | `dotnet build demos/InSharpMcp.Demos.slnx` | Build passes | 0 warnings, 0 errors | Pass |
+| Phase 12 final regression suite | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 69 tests passed | Pass |
 
 ### Phase 2: Adapter Contract Harness
 - **Status:** complete
@@ -296,12 +319,16 @@
 | 2026-05-15 | Non-Windows screenshot branch returned `Task<ScreenshotResult>` from an async method | 1 | Returned `ScreenshotResult` directly. |
 | 2026-05-15 | Accessibility tool test used an unnamed cancellation argument after a named argument | 1 | Made the cancellation argument named. |
 | 2026-05-15 | Demo solution build could not resolve `Uno.Sdk` because the solution root did not see nested `demo.uno/global.json` | 1 | Changed the Uno demo project SDK to explicit `Uno.Sdk/6.5.33`; aggregate demo build passed. |
+| 2026-05-15 | Parallel adapter builds contended for `InSharpMcp.Contracts.dll` | 1 | Rebuilt adapters sequentially; both passed. |
+| 2026-05-15 | WinForms invoker targeted `ButtonBase.PerformClick()` even though the public default-action contract is on `IButtonControl` | 1 | Switched the invoker to `IButtonControl.PerformClick()`. |
+| 2026-05-15 | Avalonia dispatcher async overload returned `Task<T>` directly, so `GetTask()` was invalid | 1 | Returned the `InvokeAsync` task directly. |
+| 2026-05-15 | Phase 12 first full test run had a stale `UiTreeSnapshot` named parameter and an unshown WinForms form for `PerformClick()` | 1 | Updated the named parameter and showed the test form before invocation; full suite passed. |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Complete. |
+| Where am I? | Phase 12 complete. |
 | Where am I going? | Final commit and clean working tree check. |
 | What's the goal? | Fully implement `plans/PLAN.md` with verification evidence and a clean final working tree. |
 | What have I learned? | See `plans/findings.md`. |
-| What have I done? | Completed Phase 1 through Phase 9 with 56 passing tests, implementation summary, and validation-gated adapter documentation. |
+| What have I done? | Completed Phase 1 through Phase 12 with Avalonia and WinForms adapters, demos wired to those adapters, and 69 passing tests. |

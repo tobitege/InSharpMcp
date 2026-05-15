@@ -45,6 +45,10 @@
 - Installed .NET templates include `unoapp`, `avalonia.app`, and `winforms`, so each demo can start from a framework-native template.
 - `demos/InSharpMcp.Demos.slnx` builds all three demo projects. The first aggregate build failed because Uno SDK version resolution could not see the nested `demo.uno/global.json`; setting the Uno demo project SDK to `Uno.Sdk/6.5.33` fixed the solution-level build.
 - The new adapter goal targets `InSharpMcp.Adapters.Avalonia` and `InSharpMcp.Adapters.WinForms`, which can now be validated because Phase 11 added buildable demo hosts for both frameworks.
+- `InSharpMcp.Adapters.Avalonia` now builds against Avalonia 11.3.9 and provides UI dispatcher marshalling, bounded visual-tree inspection, DataContext metadata, screenshot capture for measured controls, app close, accessibility-tree delegation, and explicit unsupported results for unsafe input/automation paths.
+- `InSharpMcp.Adapters.WinForms` now builds for `net8.0-windows` and provides control-tree inspection, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, app close, accessibility-tree delegation, explicit unsupported pointer/key/text input, and default action invocation through `IButtonControl.PerformClick()`.
+- Avalonia and WinForms demos now reference their adapter projects and register adapter services at startup, giving compile-time integration coverage for the two new adapter packages.
+- The full server test suite now includes adapter-specific test projects and passes with 69 tests.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -66,6 +70,8 @@
 | Reopen implementation as Phase 10 instead of rewriting history | The workspace is clean and committed; remediation should be additive, tested, and committed in coherent slices. |
 | Add demos as Phase 11 | The prior phases are complete; demo apps are a separate delivery slice requested by the new goal. |
 | Add Avalonia/WinForms adapters as Phase 12 | The demo hosts satisfy the plan's validation gate for these framework adapters. |
+| Keep Avalonia pointer/key/text input and automation invocation unsupported for now | The plan requires proven platform APIs; the current implementation avoids fabricated input events and returns explicit `unsupported` results. |
+| Use WinForms `Tag` as the inspected DataContext surface | WinForms has no native DataContext equivalent; `Tag` is the conventional object payload surface and can use the shared metadata factory safely. |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -79,6 +85,8 @@
 | Non-Windows screenshot branch returned the wrong type from an async method. | Returned `ScreenshotResult` directly. |
 | Accessibility tool test mixed named and positional arguments. | Changed the cancellation token argument to named form. |
 | Review found missing routed app execution and auth integration. | Added Phase 10 remediation scope before code changes. |
+| Parallel adapter builds locked the shared contracts output. | Rebuilt sequentially and kept later verification commands sequential. |
+| WinForms `PerformClick()` test did not fire before the form was visible. | Updated the STA test to show the form and pump events before invoking the default action. |
 
 ## Resources
 - `plans/PLAN.md`
@@ -103,3 +111,8 @@
 - `dotnet build demos/demo.uno/InSharpMcp.Demo.Uno/InSharpMcp.Demo.Uno.csproj -f net9.0-desktop` passed.
 - `dotnet build demos/InSharpMcp.Demos.slnx` passed with 0 warnings and 0 errors.
 - Final Phase 11 `dotnet test mcp/server/InSharpMcp.sln` passed with 64 tests after adding demo package versions and projects.
+- Phase 12 `dotnet build mcp/server/InSharpMcp.Adapters.WinForms/InSharpMcp.Adapters.WinForms.csproj` passed with 0 warnings and 0 errors.
+- Phase 12 `dotnet build mcp/server/InSharpMcp.Adapters.Avalonia/InSharpMcp.Adapters.Avalonia.csproj` passed with 0 warnings and 0 errors.
+- Phase 12 `dotnet build mcp/server/InSharpMcp.sln` passed with 0 warnings and 0 errors.
+- Phase 12 `dotnet build demos/InSharpMcp.Demos.slnx` passed with 0 warnings and 0 errors.
+- Phase 12 `dotnet test mcp/server/InSharpMcp.sln` passed with 69 tests.
