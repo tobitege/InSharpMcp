@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Remediation Phase 10: Review-critical gaps
+Phase 11: Demo apps for planned environments
 
 ## Phases
 
@@ -107,6 +107,17 @@ Remediation Phase 10: Review-critical gaps
 - [x] Run full verification and commit coherent remediation slices
 - **Status:** complete
 
+### Phase 11: Demo Apps for Planned Environments
+- [ ] Create and build `demos/demo.uno`
+- [ ] Create and build `demos/demo.avalonia`
+- [ ] Create and build `demos/demo.winforms`
+- [ ] Include simple menu, buttons, single-line input, editable text area, scrollable lorem ipsum, labels/text blocks, and adapter-specific controls in each demo
+- [ ] Document run/build commands and any framework-specific validation notes
+- [ ] Add demos to the solution or a documented solution structure
+- [ ] Run focused demo builds and full `dotnet test mcp/server/InSharpMcp.sln`
+- [ ] Commit coherent demo slices and finish with a clean working tree
+- **Status:** in_progress
+
 ## Key Questions
 1. Which package-management style does this repository currently use?
 2. Which test framework is already present or most consistent with the repository?
@@ -119,6 +130,7 @@ Remediation Phase 10: Review-critical gaps
 | Planning files live under `plans` | User explicitly requested planning-with-files within the `plans` folder. |
 | Commit after coherent tested slices | User requested frequent commits for features/steps. |
 | Treat Avalonia/WinForms as validation-gated | `plans/PLAN.md` says these adapters are added only when validation hosts are available. |
+| Build real framework demos from installed templates | `dotnet new list` shows installed Uno, Avalonia, and WinForms templates, so demo scaffolding can be validated locally. |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -131,6 +143,7 @@ Remediation Phase 10: Review-critical gaps
 | Desktop/Skia screenshot branch returned `Task<ScreenshotResult>` inside an async method | 1 | Returned `ScreenshotResult` directly from the non-Windows branch. |
 | Accessibility tool test used a positional cancellation argument after a named argument | 1 | Made the cancellation argument named. |
 | Final review found core plan gaps despite passing tests | 1 | Reopened the implementation with Phase 10 remediation focused on routed broker dispatch, auth, tracing, close queueing, and Uno bounds. |
+| New goal could not be registered through the goal tool because the thread still reports an existing goal | 1 | Validated the new goal text at 2,196 characters and proceeded under the user request while recording Phase 11 in planning files. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.

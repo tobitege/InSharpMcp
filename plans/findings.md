@@ -41,6 +41,8 @@
 - Protected tools authorize before target selection, so unauthenticated callers cannot use protected operations to probe registered or ambiguous targets.
 - Trace and event recording now happens around actual selected tool execution; `ism_start_trace`/`ism_stop_trace` are target-scoped.
 - Uno visual-tree traversal now uses a shared `NodeVisitBudget` so node limits are consumed globally across sibling branches, and snapshot node metadata uses the caller's text limit instead of default limits.
+- New demo-app goal targets the three planned environments in `plans/PLAN.md`: `demos/demo.uno`, `demos/demo.avalonia`, and `demos/demo.winforms`.
+- Installed .NET templates include `unoapp`, `avalonia.app`, and `winforms`, so each demo can start from a framework-native template.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -60,6 +62,7 @@
 | Keep assertion helpers result-oriented rather than exception-oriented | Normal assertion failures are expected tool outcomes and should return structured data. |
 | Document the Avalonia/WinForms validation blocker instead of adding unvalidated adapters | `plans/PLAN.md` explicitly gates those adapters on available validation hosts. |
 | Reopen implementation as Phase 10 instead of rewriting history | The workspace is clean and committed; remediation should be additive, tested, and committed in coherent slices. |
+| Add demos as Phase 11 | The prior phases are complete; demo apps are a separate delivery slice requested by the new goal. |
 
 ## Issues Encountered
 | Issue | Resolution |
