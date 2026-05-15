@@ -1,11 +1,10 @@
 using InSharpMcp.Contracts;
-using InSharpMcp.Concurrency;
 using InSharpMcp.Interaction;
 using InSharpMcp.Limits;
 using InSharpMcp.Registry;
+using InSharpMcp.Routing;
 using InSharpMcp.Security;
 using InSharpMcp.Selectors;
-using InSharpMcp.Tracing;
 using ModelContextProtocol.Server;
 
 namespace InSharpMcp.Tools;
@@ -61,157 +60,263 @@ public sealed class InSharpMcpTools
 
     [McpServerTool(Name = "ism_visualtree_snapshot")]
     public static Task<ToolResult> VisualTreeSnapshot(
-        IUiTreeInspector inspector,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         ToolLimitPolicyEvaluator limitPolicy,
+        AppTargetSelector? target = null,
         int? maxDepth = null,
         int? maxNodes = null,
         CancellationToken cancellationToken = default)
     {
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
+        }
+
         var limits = CreateCallLimits(limitPolicy, maxDepth, maxNodes, maxTextCharacters: null);
-        return uiQueue.RunAsync(
-            "visualtree_snapshot",
-            token => inspector.GetVisualTreeSnapshotAsync(limits, token),
-            limits,
+        return RunRecordedToolAsync(
+            route,
+            "ism_visualtree_snapshot",
+            "inspection",
+            (client, token) => client.GetVisualTreeSnapshotAsync(limits, token),
             cancellationToken);
     }
 
     [McpServerTool(Name = "ism_get_element_metadata")]
     public static Task<ToolResult> GetElementMetadata(
-        IUiTreeInspector inspector,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         ToolLimitPolicyEvaluator limitPolicy,
         string elementIdentifier,
+        AppTargetSelector? target = null,
         int? maxTextCharacters = null,
         CancellationToken cancellationToken = default)
     {
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
+        }
+
         var limits = CreateCallLimits(limitPolicy, maxDepth: null, maxNodes: null, maxTextCharacters);
-        return uiQueue.RunAsync(
-            "get_element_metadata",
-            token => inspector.GetElementMetadataAsync(elementIdentifier, limits, token),
-            limits,
+        return RunRecordedToolAsync(
+            route,
+            "ism_get_element_metadata",
+            "inspection",
+            (client, token) => client.GetElementMetadataAsync(elementIdentifier, limits, token),
             cancellationToken);
     }
 
     [McpServerTool(Name = "ism_get_element_datacontext")]
     public static Task<ToolResult> GetElementDataContext(
-        IUiTreeInspector inspector,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         ToolLimitPolicyEvaluator limitPolicy,
+        McpAuthorization authorization,
+        McpRequestAuthorizationResolver authorizationResolver,
         string elementIdentifier,
+        AppTargetSelector? target = null,
         int? maxNodes = null,
         int? maxTextCharacters = null,
+        string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
+        }
+
+        var authorized = AuthorizeProtected(
+            authorization,
+            authorizationResolver,
+            "ism_get_element_datacontext",
+            authorizationToken);
+        if (!authorized.Success)
+        {
+            return Task.FromResult(authorized);
+        }
+
         var limits = CreateCallLimits(limitPolicy, maxDepth: null, maxNodes, maxTextCharacters);
-        return uiQueue.RunAsync(
-            "get_element_datacontext",
-            token => inspector.GetElementDataContextAsync(elementIdentifier, limits, token),
-            limits,
+        return RunRecordedToolAsync(
+            route,
+            "ism_get_element_datacontext",
+            "inspection",
+            (client, token) => client.GetElementDataContextAsync(elementIdentifier, limits, token),
             cancellationToken);
     }
 
     [McpServerTool(Name = "ism_get_screenshot")]
     public static async Task<ScreenshotResult> GetScreenshot(
-        IScreenshotProvider screenshotProvider,
+        AppInstanceRouter router,
+        McpAuthorization authorization,
+        McpRequestAuthorizationResolver authorizationResolver,
+        AppTargetSelector? target = null,
+        string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        return await screenshotProvider.CaptureScreenshotAsync(cancellationToken).ConfigureAwait(false);
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return ToScreenshotResult(route.Error!);
+        }
+
+        var authorized = AuthorizeProtected(
+            authorization,
+            authorizationResolver,
+            "ism_get_screenshot",
+            authorizationToken);
+        if (!authorized.Success)
+        {
+            return ToScreenshotResult(authorized);
+        }
+
+        var started = DateTimeOffset.UtcNow;
+        var timestamp = TimeProvider.System.GetTimestamp();
+        var result = await route.Client!.CaptureScreenshotAsync(cancellationToken).ConfigureAwait(false);
+        RecordToolEvent(
+            route,
+            "ism_get_screenshot",
+            "inspection",
+            new ToolResult(result.Success, result.Message ?? "Screenshot completed.", result, result.ErrorCode),
+            started,
+            TimeProvider.System.GetElapsedTime(timestamp));
+        return result;
     }
 
     [McpServerTool(Name = "ism_query_elements")]
     public static async Task<ToolResult> QueryElements(
-        IUiTreeInspector inspector,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         ToolLimitPolicyEvaluator limitPolicy,
         ElementSelectorMatcher matcher,
         ElementSelector selector,
+        AppTargetSelector? target = null,
         int? maxDepth = null,
         int? maxNodes = null,
         CancellationToken cancellationToken = default)
     {
-        var limits = CreateCallLimits(limitPolicy, maxDepth, maxNodes, maxTextCharacters: null);
-        var snapshotResult = await uiQueue.RunAsync(
-            "query_elements_snapshot",
-            token => inspector.GetVisualTreeSnapshotAsync(limits, token),
-            limits,
-            cancellationToken).ConfigureAwait(false);
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return route.Error!;
+        }
 
-        return snapshotResult.Data is UiTreeSnapshot snapshot
-            ? matcher.Match(snapshot, selector, limits)
-            : snapshotResult;
+        var limits = CreateCallLimits(limitPolicy, maxDepth, maxNodes, maxTextCharacters: null);
+        return await RunRecordedToolAsync(
+            route,
+            "ism_query_elements",
+            "inspection",
+            async (client, token) =>
+            {
+                var snapshotResult = await client.GetVisualTreeSnapshotAsync(limits, token).ConfigureAwait(false);
+                return snapshotResult.Data is UiTreeSnapshot snapshot
+                    ? matcher.Match(snapshot, selector, limits)
+                    : snapshotResult;
+            },
+            cancellationToken).ConfigureAwait(false);
     }
 
     [McpServerTool(Name = "ism_wait_for_element")]
     public static async Task<ToolResult> WaitForElement(
-        IUiTreeInspector inspector,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         ToolLimitPolicyEvaluator limitPolicy,
         ElementSelectorMatcher matcher,
         ElementSelector selector,
+        AppTargetSelector? target = null,
         int? timeoutMs = null,
         CancellationToken cancellationToken = default)
     {
-        var timeout = TimeSpan.FromMilliseconds(Math.Clamp(timeoutMs ?? 5_000, 100, 30_000));
-        var started = TimeProvider.System.GetTimestamp();
-        while (TimeProvider.System.GetElapsedTime(started) < timeout)
+        var route = router.Select(target);
+        if (!route.Succeeded)
         {
-            var result = await QueryElements(
-                inspector,
-                uiQueue,
-                limitPolicy,
-                matcher,
-                selector,
-                cancellationToken: cancellationToken).ConfigureAwait(false);
-            if (result.Data is ElementQueryResult { Matches.Count: > 0 })
-            {
-                return ToolResult.Ok("Element matched before timeout.", result.Data);
-            }
-
-            await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+            return route.Error!;
         }
 
-        return ToolResult.Fail("Timed out waiting for element.", "timeout");
+        var timeout = TimeSpan.FromMilliseconds(Math.Clamp(timeoutMs ?? 5_000, 100, 30_000));
+        var limits = CreateCallLimits(limitPolicy, maxDepth: null, maxNodes: null, maxTextCharacters: null);
+        return await RunRecordedToolAsync(
+            route,
+            "ism_wait_for_element",
+            "inspection",
+            async (client, token) =>
+            {
+                var started = TimeProvider.System.GetTimestamp();
+                while (TimeProvider.System.GetElapsedTime(started) < timeout)
+                {
+                    var result = await QueryElementsForClientAsync(client, matcher, selector, limits, token)
+                        .ConfigureAwait(false);
+                    if (result.Data is ElementQueryResult { Matches.Count: > 0 })
+                    {
+                        return ToolResult.Ok("Element matched before timeout.", result.Data);
+                    }
+
+                    await Task.Delay(50, token).ConfigureAwait(false);
+                }
+
+                return ToolResult.Fail("Timed out waiting for element.", "timeout");
+            },
+            cancellationToken).ConfigureAwait(false);
     }
 
     [McpServerTool(Name = "ism_get_accessibility_tree")]
     public static Task<ToolResult> GetAccessibilityTree(
-        IAccessibilityTreeProvider provider,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         ToolLimitPolicyEvaluator limitPolicy,
+        AppTargetSelector? target = null,
         int? maxDepth = null,
         int? maxNodes = null,
         CancellationToken cancellationToken = default)
     {
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
+        }
+
         var limits = CreateCallLimits(limitPolicy, maxDepth, maxNodes, maxTextCharacters: null);
-        return uiQueue.RunAsync(
-            "get_accessibility_tree",
-            token => provider.GetAccessibilityTreeAsync(limits, token),
-            limits,
+        return RunRecordedToolAsync(
+            route,
+            "ism_get_accessibility_tree",
+            "inspection",
+            (client, token) => client.GetAccessibilityTreeAsync(limits, token),
             cancellationToken);
     }
 
     [McpServerTool(Name = "ism_get_event_log")]
-    public static ToolResult GetEventLog(IEventLogProvider eventLog, string[]? categories = null, int maximumCount = 100)
+    public static ToolResult GetEventLog(
+        AppInstanceRouter router,
+        AppTargetSelector? target = null,
+        string[]? categories = null,
+        int maximumCount = 100)
     {
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return route.Error!;
+        }
+
         var categorySet = categories is null ? null : new HashSet<string>(categories, StringComparer.Ordinal);
-        var events = eventLog.List(categorySet, Math.Clamp(maximumCount, 1, 1_000));
+        var events = route.Client!.EventLog.List(categorySet, Math.Clamp(maximumCount, 1, 1_000));
         return ToolResult.Ok("Event log returned.", events);
     }
 
     [McpServerTool(Name = "ism_pointer_click")]
     public static Task<ToolResult> PointerClick(
-        IPointerInputSimulator input,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         McpAuthorization authorization,
+        McpRequestAuthorizationResolver authorizationResolver,
         InteractionInputValidator validator,
-        IEventLogProvider eventLog,
         double x,
         double y,
+        AppTargetSelector? target = null,
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = authorization.AuthorizeTool("ism_pointer_click", McpTransportKind.Stdio, authorizationToken);
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
+        }
+
+        var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_pointer_click", authorizationToken);
         if (!authorized.Success)
         {
             return Task.FromResult(authorized);
@@ -223,27 +328,33 @@ public sealed class InSharpMcpTools
             return Task.FromResult(validation);
         }
 
-        return RunInteractionAsync(
+        return RunRecordedToolAsync(
+            route,
             "ism_pointer_click",
-            eventLog,
-            uiQueue,
-            token => input.PointerClickAsync(x, y, token),
+            "interaction",
+            (client, token) => client.PointerClickAsync(x, y, token),
             cancellationToken);
     }
 
     [McpServerTool(Name = "ism_key_press")]
     public static Task<ToolResult> KeyPress(
-        IPointerInputSimulator input,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         McpAuthorization authorization,
+        McpRequestAuthorizationResolver authorizationResolver,
         InteractionInputValidator validator,
-        IEventLogProvider eventLog,
         string key,
         string[]? modifiers = null,
+        AppTargetSelector? target = null,
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = authorization.AuthorizeTool("ism_key_press", McpTransportKind.Stdio, authorizationToken);
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
+        }
+
+        var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_key_press", authorizationToken);
         if (!authorized.Success)
         {
             return Task.FromResult(authorized);
@@ -256,26 +367,32 @@ public sealed class InSharpMcpTools
             return Task.FromResult(validation);
         }
 
-        return RunInteractionAsync(
+        return RunRecordedToolAsync(
+            route,
             "ism_key_press",
-            eventLog,
-            uiQueue,
-            token => input.KeyPressAsync(key, effectiveModifiers, token),
+            "interaction",
+            (client, token) => client.KeyPressAsync(key, effectiveModifiers, token),
             cancellationToken);
     }
 
     [McpServerTool(Name = "ism_type_text")]
     public static Task<ToolResult> TypeText(
-        IPointerInputSimulator input,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         McpAuthorization authorization,
+        McpRequestAuthorizationResolver authorizationResolver,
         InteractionInputValidator validator,
-        IEventLogProvider eventLog,
         string text,
+        AppTargetSelector? target = null,
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = authorization.AuthorizeTool("ism_type_text", McpTransportKind.Stdio, authorizationToken);
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
+        }
+
+        var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_type_text", authorizationToken);
         if (!authorized.Success)
         {
             return Task.FromResult(authorized);
@@ -287,161 +404,300 @@ public sealed class InSharpMcpTools
             return Task.FromResult(validation);
         }
 
-        return RunInteractionAsync(
+        return RunRecordedToolAsync(
+            route,
             "ism_type_text",
-            eventLog,
-            uiQueue,
-            token => input.TypeTextAsync(text, token),
+            "interaction",
+            (client, token) => client.TypeTextAsync(text, token),
             cancellationToken);
     }
 
     [McpServerTool(Name = "ism_element_peer_default_action")]
     public static Task<ToolResult> ElementPeerDefaultAction(
-        IAutomationPeerInvoker invoker,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         McpAuthorization authorization,
-        IEventLogProvider eventLog,
+        McpRequestAuthorizationResolver authorizationResolver,
         string elementIdentifier,
+        AppTargetSelector? target = null,
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = authorization.AuthorizeTool("ism_element_peer_default_action", McpTransportKind.Stdio, authorizationToken);
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
+        }
+
+        var authorized = AuthorizeProtected(
+            authorization,
+            authorizationResolver,
+            "ism_element_peer_default_action",
+            authorizationToken);
         if (!authorized.Success)
         {
             return Task.FromResult(authorized);
         }
 
-        return RunInteractionAsync(
+        return RunRecordedToolAsync(
+            route,
             "ism_element_peer_default_action",
-            eventLog,
-            uiQueue,
-            token => invoker.InvokeDefaultActionAsync(elementIdentifier, token),
+            "interaction",
+            (client, token) => client.InvokeDefaultActionAsync(elementIdentifier, token),
             cancellationToken);
     }
 
     [McpServerTool(Name = "ism_close")]
     public static Task<ToolResult> Close(
-        IAppProvider appProvider,
+        AppInstanceRouter router,
         McpAuthorization authorization,
-        IEventLogProvider eventLog,
+        McpRequestAuthorizationResolver authorizationResolver,
+        AppTargetSelector? target = null,
         string? authorizationToken = null,
         CancellationToken cancellationToken = default)
     {
-        var authorized = authorization.AuthorizeTool("ism_close", McpTransportKind.Stdio, authorizationToken);
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
+        }
+
+        var authorized = AuthorizeProtected(authorization, authorizationResolver, "ism_close", authorizationToken);
         if (!authorized.Success)
         {
             return Task.FromResult(authorized);
         }
 
-        return RunInteractionAsync(
+        return RunRecordedToolAsync(
+            route,
             "ism_close",
-            eventLog,
-            new PassthroughUiOperationQueue(),
-            appProvider.CloseAsync,
+            "interaction",
+            (client, token) => client.CloseAsync(token),
             cancellationToken);
     }
 
     [McpServerTool(Name = "ism_start_trace")]
-    public static ToolResult StartTrace(ITraceStore traceStore)
+    public static ToolResult StartTrace(AppInstanceRouter router, AppTargetSelector? target = null)
     {
-        var traceId = traceStore.Start();
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return route.Error!;
+        }
+
+        var traceId = route.Client!.TraceStore.Start();
+        RecordToolEvent(
+            route,
+            "ism_start_trace",
+            "trace",
+            ToolResult.Ok("Trace started.", new { TraceId = traceId }),
+            DateTimeOffset.UtcNow,
+            TimeSpan.Zero);
         return ToolResult.Ok("Trace started.", new { TraceId = traceId });
     }
 
     [McpServerTool(Name = "ism_stop_trace")]
-    public static ToolResult StopTrace(ITraceStore traceStore, string traceId)
+    public static ToolResult StopTrace(AppInstanceRouter router, string traceId, AppTargetSelector? target = null)
     {
-        return traceStore.Stop(traceId);
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return route.Error!;
+        }
+
+        RecordToolEvent(
+            route,
+            "ism_stop_trace",
+            "trace",
+            ToolResult.Ok("Trace stopped."),
+            DateTimeOffset.UtcNow,
+            TimeSpan.Zero);
+        return route.Client!.TraceStore.Stop(traceId);
     }
 
     [McpServerTool(Name = "ism_assert_element_exists")]
     public static async Task<ToolResult> AssertElementExists(
-        IUiTreeInspector inspector,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         ToolLimitPolicyEvaluator limitPolicy,
         ElementSelectorMatcher matcher,
         ElementSelector selector,
+        AppTargetSelector? target = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await QueryElements(inspector, uiQueue, limitPolicy, matcher, selector, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-        var passed = result.Data is ElementQueryResult { Matches.Count: > 0 };
-        return ToolResult.Ok(
-            passed ? "Assertion passed." : "Assertion failed.",
-            new AssertionResult(passed, passed ? "Element exists." : "Element was not found.", result.Data));
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return route.Error!;
+        }
+
+        var limits = CreateCallLimits(limitPolicy, maxDepth: null, maxNodes: null, maxTextCharacters: null);
+        return await RunRecordedToolAsync(
+            route,
+            "ism_assert_element_exists",
+            "assertion",
+            async (client, token) =>
+            {
+                var result = await QueryElementsForClientAsync(client, matcher, selector, limits, token)
+                    .ConfigureAwait(false);
+                var passed = result.Data is ElementQueryResult { Matches.Count: > 0 };
+                return ToolResult.Ok(
+                    passed ? "Assertion passed." : "Assertion failed.",
+                    new AssertionResult(passed, passed ? "Element exists." : "Element was not found.", result.Data));
+            },
+            cancellationToken).ConfigureAwait(false);
     }
 
     [McpServerTool(Name = "ism_assert_element_text")]
     public static async Task<ToolResult> AssertElementText(
-        IUiTreeInspector inspector,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         ToolLimitPolicyEvaluator limitPolicy,
         ElementSelectorMatcher matcher,
         ElementSelector selector,
         string expectedText,
+        AppTargetSelector? target = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await QueryElements(inspector, uiQueue, limitPolicy, matcher, selector, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-        var actual = (result.Data as ElementQueryResult)?.Matches.FirstOrDefault()?.Text;
-        var passed = string.Equals(actual, expectedText, StringComparison.Ordinal);
-        return ToolResult.Ok(
-            passed ? "Assertion passed." : "Assertion failed.",
-            new AssertionResult(passed, $"Expected text '{expectedText}'.", actual));
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return route.Error!;
+        }
+
+        var limits = CreateCallLimits(limitPolicy, maxDepth: null, maxNodes: null, maxTextCharacters: null);
+        return await RunRecordedToolAsync(
+            route,
+            "ism_assert_element_text",
+            "assertion",
+            async (client, token) =>
+            {
+                var result = await QueryElementsForClientAsync(client, matcher, selector, limits, token)
+                    .ConfigureAwait(false);
+                var actual = (result.Data as ElementQueryResult)?.Matches.FirstOrDefault()?.Text;
+                var passed = string.Equals(actual, expectedText, StringComparison.Ordinal);
+                return ToolResult.Ok(
+                    passed ? "Assertion passed." : "Assertion failed.",
+                    new AssertionResult(passed, $"Expected text '{expectedText}'.", actual));
+            },
+            cancellationToken).ConfigureAwait(false);
     }
 
     [McpServerTool(Name = "ism_assert_element_enabled")]
     public static async Task<ToolResult> AssertElementEnabled(
-        IUiTreeInspector inspector,
-        IUiOperationQueue uiQueue,
+        AppInstanceRouter router,
         ToolLimitPolicyEvaluator limitPolicy,
         ElementSelectorMatcher matcher,
         ElementSelector selector,
         bool expectedEnabled,
+        AppTargetSelector? target = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await QueryElements(inspector, uiQueue, limitPolicy, matcher, selector, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-        var actual = (result.Data as ElementQueryResult)?.Matches.FirstOrDefault()?.IsEnabled;
-        var passed = actual == expectedEnabled;
-        return ToolResult.Ok(
-            passed ? "Assertion passed." : "Assertion failed.",
-            new AssertionResult(passed, $"Expected enabled state '{expectedEnabled}'.", actual));
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return route.Error!;
+        }
+
+        var limits = CreateCallLimits(limitPolicy, maxDepth: null, maxNodes: null, maxTextCharacters: null);
+        return await RunRecordedToolAsync(
+            route,
+            "ism_assert_element_enabled",
+            "assertion",
+            async (client, token) =>
+            {
+                var result = await QueryElementsForClientAsync(client, matcher, selector, limits, token)
+                    .ConfigureAwait(false);
+                var actual = (result.Data as ElementQueryResult)?.Matches.FirstOrDefault()?.IsEnabled;
+                var passed = actual == expectedEnabled;
+                return ToolResult.Ok(
+                    passed ? "Assertion passed." : "Assertion failed.",
+                    new AssertionResult(passed, $"Expected enabled state '{expectedEnabled}'.", actual));
+            },
+            cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<ToolResult> RunInteractionAsync(
-        string toolName,
-        IEventLogProvider eventLog,
-        IUiOperationQueue uiQueue,
-        Func<CancellationToken, Task<ToolResult>> operation,
+    private static async Task<ToolResult> QueryElementsForClientAsync(
+        IAppInstanceClient client,
+        ElementSelectorMatcher matcher,
+        ElementSelector selector,
+        ToolLimits limits,
         CancellationToken cancellationToken)
     {
-        var result = await uiQueue.RunAsync(toolName, operation, new ToolLimits(), cancellationToken).ConfigureAwait(false);
-        eventLog.Add(new EventLogEntry(
-            DateTimeOffset.UtcNow,
-            "interaction",
+        var snapshotResult = await client.GetVisualTreeSnapshotAsync(limits, cancellationToken).ConfigureAwait(false);
+        return snapshotResult.Data is UiTreeSnapshot snapshot
+            ? matcher.Match(snapshot, selector, limits)
+            : snapshotResult;
+    }
+
+    private static async Task<ToolResult> RunRecordedToolAsync(
+        AppInstanceRoute route,
+        string toolName,
+        string category,
+        Func<IAppInstanceClient, CancellationToken, Task<ToolResult>> operation,
+        CancellationToken cancellationToken)
+    {
+        var started = DateTimeOffset.UtcNow;
+        var timestamp = TimeProvider.System.GetTimestamp();
+        ToolResult result;
+        try
+        {
+            result = await operation(route.Client!, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            result = ToolResult.Fail("Operation was canceled.", "canceled");
+        }
+        catch (Exception exception)
+        {
+            result = ToolResult.Fail(
+                "Tool execution failed.",
+                "tool_exception",
+                new { ExceptionType = exception.GetType().Name });
+        }
+
+        RecordToolEvent(
+            route,
             toolName,
-            new Dictionary<string, string>
-            {
-                ["success"] = result.Success.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                ["errorCode"] = result.ErrorCode ?? string.Empty,
-            }));
+            category,
+            result,
+            started,
+            TimeProvider.System.GetElapsedTime(timestamp));
         return result;
     }
 
-    private sealed class PassthroughUiOperationQueue : IUiOperationQueue
+    private static void RecordToolEvent(
+        AppInstanceRoute route,
+        string toolName,
+        string category,
+        ToolResult result,
+        DateTimeOffset started,
+        TimeSpan elapsed)
     {
-        public Task<ToolResult> RunAsync(
-            string operationName,
-            Func<CancellationToken, Task<ToolResult>> operation,
-            ToolLimits limits,
-            CancellationToken cancellationToken)
-        {
-            _ = operationName;
-            _ = limits;
-            return operation(cancellationToken);
-        }
+        route.Client!.RecordEvent(new EventLogEntry(
+            DateTimeOffset.UtcNow,
+            category,
+            toolName,
+            new Dictionary<string, string>
+            {
+                ["appId"] = route.Instance!.AppId,
+                ["instanceId"] = route.Instance.InstanceId,
+                ["startedAt"] = started.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+                ["elapsedMs"] = elapsed.TotalMilliseconds.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture),
+                ["success"] = result.Success.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["errorCode"] = result.ErrorCode ?? string.Empty,
+            }));
     }
+
+    private static ToolResult AuthorizeProtected(
+        McpAuthorization authorization,
+        McpRequestAuthorizationResolver authorizationResolver,
+        string toolName,
+        string? authorizationToken)
+    {
+        var context = authorizationResolver.Resolve(authorizationToken);
+        return authorization.AuthorizeTool(toolName, context.TransportKind, context.AuthorizationToken);
+    }
+
+    private static ScreenshotResult ToScreenshotResult(ToolResult result) =>
+        new(result.Success, null, result.Message, result.ErrorCode);
 
     private static ToolLimits CreateCallLimits(
         ToolLimitPolicyEvaluator limitPolicy,

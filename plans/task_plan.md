@@ -97,11 +97,11 @@ Remediation Phase 10: Review-critical gaps
 - **Status:** complete
 
 ### Phase 10: Review-critical Remediation
-- [ ] Add routed target dispatch for UI, screenshot, event-log, trace, assertion, and interaction tools
-- [ ] Add transport-aware authorization for protected tools, including HTTP request token extraction
-- [ ] Add an app-instance client/connection layer so selected registry instances map to executable adapter operations
-- [ ] Record trace entries from actual tool execution instead of requiring manual trace-store writes
-- [ ] Ensure `ism_close` runs through the selected app UI operation path
+- [x] Add routed target dispatch for UI, screenshot, event-log, trace, assertion, and interaction tools
+- [x] Add transport-aware authorization for protected tools, including HTTP request token extraction
+- [x] Add an app-instance client/connection layer so selected registry instances map to executable adapter operations
+- [x] Record trace entries from actual tool execution instead of requiring manual trace-store writes
+- [x] Ensure `ism_close` runs through the selected app UI operation path
 - [ ] Fix Uno visual-tree limit enforcement for lookup and snapshot text caps
 - [ ] Add tests proving routing, ambiguity/stale errors, HTTP/stdio auth behavior, trace recording, close queueing, and Uno bounds
 - [ ] Run full verification and commit coherent remediation slices

@@ -4,6 +4,7 @@ using InSharpMcp.Events;
 using InSharpMcp.Interaction;
 using InSharpMcp.Limits;
 using InSharpMcp.Registry;
+using InSharpMcp.Routing;
 using InSharpMcp.Security;
 using InSharpMcp.Selectors;
 using InSharpMcp.Tracing;
@@ -22,7 +23,9 @@ public static class InSharpMcpServiceCollectionExtensions
     public static IServiceCollection AddInSharpMcpCore(this IServiceCollection services, BrokerMcpHostOptions options)
     {
         services.AddSingleton<AppInstanceRegistry>();
+        services.AddSingleton<AppInstanceConnectionRegistry>();
         services.AddSingleton<AppInstanceSelector>();
+        services.AddSingleton<AppInstanceRouter>();
         services.AddSingleton<AppRegistrationService>();
         services.AddSingleton<ToolLimitPolicy>();
         services.AddSingleton<ToolLimitPolicyEvaluator>();
@@ -34,6 +37,8 @@ public static class InSharpMcpServiceCollectionExtensions
         services.AddSingleton(options.Concurrency);
         services.AddSingleton(options.Access);
         services.AddSingleton<McpAuthorization>();
+        services.AddHttpContextAccessor();
+        services.AddSingleton<McpRequestAuthorizationResolver>();
         services.AddSingleton<ConcurrentCallGate>();
         services.AddSingleton<IUiOperationQueue, UiOperationQueue>();
 

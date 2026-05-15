@@ -12,16 +12,18 @@ public sealed class InteractionToolTests
     [Fact]
     public async Task PointerClick_RejectsMissingTokenForProtectedTool()
     {
+        var client = ToolRoutingFixture.CreateClient(inputSimulator: new RecordingInputSimulator());
+        var router = ToolRoutingFixture.CreateRouter(client);
+
         var result = await InSharpMcpTools.PointerClick(
-            new RecordingInputSimulator(),
-            new UiOperationQueue(),
+            router,
             new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
+            new McpRequestAuthorizationResolver(),
             new InteractionInputValidator(),
-            new BoundedEventLog(),
             x: 1,
             y: 1,
             authorizationToken: null,
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         Assert.False(result.Success);
         Assert.Equal("unauthorized", result.ErrorCode);
@@ -30,16 +32,18 @@ public sealed class InteractionToolTests
     [Fact]
     public async Task PointerClick_RejectsNegativeCoordinates()
     {
+        var client = ToolRoutingFixture.CreateClient(inputSimulator: new RecordingInputSimulator());
+        var router = ToolRoutingFixture.CreateRouter(client);
+
         var result = await InSharpMcpTools.PointerClick(
-            new RecordingInputSimulator(),
-            new UiOperationQueue(),
+            router,
             new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
+            new McpRequestAuthorizationResolver(),
             new InteractionInputValidator(),
-            new BoundedEventLog(),
             x: -1,
             y: 1,
             authorizationToken: "secret",
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         Assert.False(result.Success);
         Assert.Equal("invalid_coordinates", result.ErrorCode);
@@ -49,16 +53,19 @@ public sealed class InteractionToolTests
     public async Task TypeText_RecordsInteractionEvent()
     {
         var log = new BoundedEventLog();
+        var client = ToolRoutingFixture.CreateClient(
+            inputSimulator: new RecordingInputSimulator(),
+            eventLog: log);
+        var router = ToolRoutingFixture.CreateRouter(client);
 
         var result = await InSharpMcpTools.TypeText(
-            new RecordingInputSimulator(),
-            new UiOperationQueue(),
+            router,
             new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
+            new McpRequestAuthorizationResolver(),
             new InteractionInputValidator(),
-            log,
             "hello",
             authorizationToken: "secret",
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         Assert.True(result.Success);
         var entry = Assert.Single(log.List(new HashSet<string>(StringComparer.Ordinal) { "interaction" }, maximumCount: 10));
@@ -68,16 +75,18 @@ public sealed class InteractionToolTests
     [Fact]
     public async Task KeyPress_RejectsUnsupportedModifier()
     {
+        var client = ToolRoutingFixture.CreateClient(inputSimulator: new RecordingInputSimulator());
+        var router = ToolRoutingFixture.CreateRouter(client);
+
         var result = await InSharpMcpTools.KeyPress(
-            new RecordingInputSimulator(),
-            new UiOperationQueue(),
+            router,
             new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
+            new McpRequestAuthorizationResolver(),
             new InteractionInputValidator(),
-            new BoundedEventLog(),
             "A",
             ["unsupported"],
             authorizationToken: "secret",
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         Assert.False(result.Success);
         Assert.Equal("invalid_modifier", result.ErrorCode);
@@ -86,14 +95,16 @@ public sealed class InteractionToolTests
     [Fact]
     public async Task ElementPeerDefaultAction_PropagatesUnsupportedResult()
     {
+        var client = ToolRoutingFixture.CreateClient(automationPeerInvoker: new UnsupportedAutomationInvoker());
+        var router = ToolRoutingFixture.CreateRouter(client);
+
         var result = await InSharpMcpTools.ElementPeerDefaultAction(
-            new UnsupportedAutomationInvoker(),
-            new UiOperationQueue(),
+            router,
             new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
-            new BoundedEventLog(),
+            new McpRequestAuthorizationResolver(),
             "missing",
             authorizationToken: "secret",
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         Assert.False(result.Success);
         Assert.Equal("unsupported", result.ErrorCode);

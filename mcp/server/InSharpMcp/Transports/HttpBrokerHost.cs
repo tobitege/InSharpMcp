@@ -16,6 +16,7 @@ public static class HttpBrokerHost
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseUrls(CreateBinding(options));
         builder.Services.AddInSharpMcpCore(options);
+        builder.Services.AddHttpContextAccessor();
         builder.Services
             .AddMcpServer()
             .WithHttpTransport()

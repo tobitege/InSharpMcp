@@ -1,6 +1,7 @@
 using InSharpMcp.Concurrency;
 using InSharpMcp.Contracts;
 using InSharpMcp.Limits;
+using InSharpMcp.Security;
 using InSharpMcp.Tools;
 
 namespace InSharpMcp.Tests;
@@ -11,16 +12,16 @@ public sealed class VisualTreeToolTests
     public async Task VisualTreeSnapshot_UsesClampedLimitsAndUiQueue()
     {
         var inspector = new RecordingTreeInspector();
-        using var queue = new UiOperationQueue();
+        var client = ToolRoutingFixture.CreateClient(treeInspector: inspector);
+        var router = ToolRoutingFixture.CreateRouter(client);
         var policy = new ToolLimitPolicyEvaluator();
 
         var result = await InSharpMcpTools.VisualTreeSnapshot(
-            inspector,
-            queue,
+            router,
             policy,
             maxDepth: 999,
             maxNodes: 999999,
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         Assert.True(result.Success);
         Assert.Equal(50, inspector.LastLimits?.MaxDepth);
@@ -31,16 +32,16 @@ public sealed class VisualTreeToolTests
     public async Task GetElementMetadata_UsesTextLimit()
     {
         var inspector = new RecordingTreeInspector();
-        using var queue = new UiOperationQueue();
+        var client = ToolRoutingFixture.CreateClient(treeInspector: inspector);
+        var router = ToolRoutingFixture.CreateRouter(client);
         var policy = new ToolLimitPolicyEvaluator();
 
         var result = await InSharpMcpTools.GetElementMetadata(
-            inspector,
-            queue,
+            router,
             policy,
             "root",
             maxTextCharacters: 10,
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         Assert.True(result.Success);
         Assert.Equal(1_024, inspector.LastLimits?.MaxTextCharacters);
@@ -51,17 +52,20 @@ public sealed class VisualTreeToolTests
     public async Task GetElementDataContext_UsesNodeAndTextLimits()
     {
         var inspector = new RecordingTreeInspector();
-        using var queue = new UiOperationQueue();
+        var client = ToolRoutingFixture.CreateClient(treeInspector: inspector);
+        var router = ToolRoutingFixture.CreateRouter(client);
         var policy = new ToolLimitPolicyEvaluator();
 
         var result = await InSharpMcpTools.GetElementDataContext(
-            inspector,
-            queue,
+            router,
             policy,
+            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
+            new McpRequestAuthorizationResolver(),
             "root",
             maxNodes: 2,
             maxTextCharacters: 2048,
-            CancellationToken.None);
+            authorizationToken: "secret",
+            cancellationToken: CancellationToken.None);
 
         Assert.True(result.Success);
         Assert.Equal(2, inspector.LastLimits?.MaxNodes);
@@ -73,8 +77,15 @@ public sealed class VisualTreeToolTests
     public async Task GetScreenshot_ReturnsProviderResult()
     {
         var provider = new RecordingScreenshotProvider();
+        var client = ToolRoutingFixture.CreateClient(screenshotProvider: provider);
+        var router = ToolRoutingFixture.CreateRouter(client);
 
-        var result = await InSharpMcpTools.GetScreenshot(provider, CancellationToken.None);
+        var result = await InSharpMcpTools.GetScreenshot(
+            router,
+            new McpAuthorization(new McpAccessOptions { SharedToken = "secret" }),
+            new McpRequestAuthorizationResolver(),
+            authorizationToken: "secret",
+            cancellationToken: CancellationToken.None);
 
         Assert.True(result.Success);
         Assert.Equal([0x89, 0x50, 0x4E, 0x47], result.PngBytes);

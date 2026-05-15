@@ -36,6 +36,9 @@
 - Phase 8 found no Avalonia or WinForms validation host in the repository. Per `plans/PLAN.md`, those adapters are not added until a validating host is available.
 - Final verification passed with 56 tests. `plans/IMPLEMENTATION_SUMMARY.md` maps the implemented scope and validation-gated scope.
 - Follow-up review found the prior completion state was premature: most tools bypass target selection, HTTP authorization is not transport-aware, registered endpoints are not mapped to executable app operations, traces are not populated by real tool execution, `ism_close` bypasses the queue, and Uno lookup/text limits are incomplete.
+- Tool entrypoints now route through `AppInstanceRouter` and `IAppInstanceClient`, which maps selected registry descriptors to executable app operations and returns `ambiguous_target` or `stale_instance` before dispatch.
+- Protected tools now use `McpRequestAuthorizationResolver`, which derives HTTP vs stdio context and extracts bearer/header/query tokens for HTTP requests.
+- Trace and event recording now happens around actual selected tool execution; `ism_start_trace`/`ism_stop_trace` are target-scoped.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -83,3 +86,4 @@
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 53 tests after adding interaction tools.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 56 tests after adding trace start/stop and assertion helpers.
 - Final `dotnet test mcp/server/InSharpMcp.sln` passed with 56 tests.
+- `dotnet test mcp/server/InSharpMcp.sln` passed with 62 tests after routed tool dispatch, transport-aware auth, trace recording, and close queue regression coverage.

@@ -12,15 +12,15 @@ public sealed class WaitAndAccessibilityToolTests
     public async Task WaitForElement_ReturnsMatchBeforeTimeout()
     {
         var inspector = new DelayedMatchInspector();
-        using var queue = new UiOperationQueue();
+        var client = ToolRoutingFixture.CreateClient(treeInspector: inspector);
+        var router = ToolRoutingFixture.CreateRouter(client);
         var result = await InSharpMcpTools.WaitForElement(
-            inspector,
-            queue,
+            router,
             new ToolLimitPolicyEvaluator(),
             new ElementSelectorMatcher(),
             new ElementSelector(Name: "Ready"),
             timeoutMs: 1000,
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         Assert.True(result.Success);
     }
@@ -28,12 +28,12 @@ public sealed class WaitAndAccessibilityToolTests
     [Fact]
     public async Task GetAccessibilityTree_UsesProviderAndQueue()
     {
-        using var queue = new UiOperationQueue();
         var provider = new RecordingAccessibilityProvider();
+        var client = ToolRoutingFixture.CreateClient(accessibilityTreeProvider: provider);
+        var router = ToolRoutingFixture.CreateRouter(client);
 
         var result = await InSharpMcpTools.GetAccessibilityTree(
-            provider,
-            queue,
+            router,
             new ToolLimitPolicyEvaluator(),
             maxNodes: 4,
             cancellationToken: CancellationToken.None);

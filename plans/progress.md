@@ -8,10 +8,21 @@
   - Reviewed the critical findings from the full implementation review.
   - Confirmed the working tree was clean before remediation.
   - Reopened `plans/task_plan.md`, `plans/findings.md`, and `plans/progress.md` with Phase 10 remediation scope.
+  - Added app-instance routing and connection-client abstractions.
+  - Changed UI, screenshot, event-log, trace, assertion, and interaction tools to route through selected app instances.
+  - Added transport-aware protected-tool authorization with HTTP bearer/header/query token extraction.
+  - Moved trace/event recording around actual selected tool execution.
+  - Routed `ism_close` through the selected app client UI queue path.
+  - Added regression tests for ambiguous target rejection, stale selected instances, selected-instance dispatch, HTTP bearer auth, close queueing, and trace capture.
 - Files created/modified:
   - `plans/task_plan.md`
   - `plans/findings.md`
   - `plans/progress.md`
+  - `mcp/server/InSharpMcp/Routing/*`
+  - `mcp/server/InSharpMcp/Security/McpRequestAuthorization*.cs`
+  - `mcp/server/InSharpMcp/Tools/InSharpMcpTools.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/RoutedToolRegressionTests.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/ToolRoutingFixture.cs`
 
 ### Phase 0: Setup and Orientation
 - **Status:** complete
@@ -74,6 +85,7 @@
 | Phase 6 interaction tools | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 53 tests passed | Pass |
 | Phase 7 tracing/assertions | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 56 tests passed | Pass |
 | Final verification | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 56 tests passed | Pass |
+| Phase 10 routed tool/auth slice | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 62 tests passed | Pass |
 
 ### Phase 2: Adapter Contract Harness
 - **Status:** complete

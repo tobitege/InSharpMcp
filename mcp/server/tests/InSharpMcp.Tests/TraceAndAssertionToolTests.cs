@@ -13,27 +13,31 @@ public sealed class TraceAndAssertionToolTests
     public void StartAndStopTrace_ReturnsSummary()
     {
         var store = new BoundedTraceStore();
-        var start = InSharpMcpTools.StartTrace(store);
-        var traceId = (string)start.Data!.GetType().GetProperty("TraceId")!.GetValue(start.Data)!;
-        store.Record(new EventLogEntry(DateTimeOffset.UtcNow, "tool", "called"));
+        var client = ToolRoutingFixture.CreateClient(traceStore: store);
+        var router = ToolRoutingFixture.CreateRouter(client);
 
-        var stop = InSharpMcpTools.StopTrace(store, traceId);
+        var start = InSharpMcpTools.StartTrace(router);
+        var traceId = (string)start.Data!.GetType().GetProperty("TraceId")!.GetValue(start.Data)!;
+
+        var stop = InSharpMcpTools.StopTrace(router, traceId);
 
         var summary = Assert.IsType<TraceSummary>(stop.Data);
         Assert.Equal(traceId, summary.TraceId);
-        Assert.Single(summary.Events);
+        Assert.Equal(2, summary.Events.Count);
     }
 
     [Fact]
     public async Task AssertElementExists_ReturnsPassingAssertion()
     {
+        var client = ToolRoutingFixture.CreateClient(treeInspector: new StaticTreeInspector());
+        var router = ToolRoutingFixture.CreateRouter(client);
+
         var result = await InSharpMcpTools.AssertElementExists(
-            new StaticTreeInspector(),
-            new UiOperationQueue(),
+            router,
             new ToolLimitPolicyEvaluator(),
             new ElementSelectorMatcher(),
             new ElementSelector(Name: "Save"),
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         var assertion = Assert.IsType<AssertionResult>(result.Data);
         Assert.True(assertion.Passed);
@@ -42,14 +46,16 @@ public sealed class TraceAndAssertionToolTests
     [Fact]
     public async Task AssertElementText_ReturnsFailingAssertionWithoutThrowing()
     {
+        var client = ToolRoutingFixture.CreateClient(treeInspector: new StaticTreeInspector());
+        var router = ToolRoutingFixture.CreateRouter(client);
+
         var result = await InSharpMcpTools.AssertElementText(
-            new StaticTreeInspector(),
-            new UiOperationQueue(),
+            router,
             new ToolLimitPolicyEvaluator(),
             new ElementSelectorMatcher(),
             new ElementSelector(Name: "Save"),
             "Cancel",
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         var assertion = Assert.IsType<AssertionResult>(result.Data);
         Assert.False(assertion.Passed);

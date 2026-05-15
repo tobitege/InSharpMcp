@@ -16,8 +16,10 @@ public sealed class EventLogTests
             "called",
             new Dictionary<string, string> { ["token"] = "secret", ["safe"] = "value" }));
         log.Add(new EventLogEntry(DateTimeOffset.UtcNow, "nav", "changed"));
+        var client = ToolRoutingFixture.CreateClient(eventLog: log);
+        var router = ToolRoutingFixture.CreateRouter(client);
 
-        var result = InSharpMcpTools.GetEventLog(log, ["tool"], maximumCount: 10);
+        var result = InSharpMcpTools.GetEventLog(router, categories: ["tool"], maximumCount: 10);
 
         var events = Assert.IsType<EventLogEntry[]>(result.Data);
         var entry = Assert.Single(events);
