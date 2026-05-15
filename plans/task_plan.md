@@ -15,14 +15,14 @@ Phase 1 - Safe Foundation
 - **Status:** complete
 
 ### Phase 1: Safe Foundation
-- [ ] Add package versions according to the selected package-management style
-- [ ] Create `InSharpMcp.Contracts`
-- [ ] Create `InSharpMcp`
-- [ ] Define shared result, limits, policy, and adapter contracts
-- [ ] Implement client limit parsing, validation, and clamping
-- [ ] Implement concurrency options and UI operation queue
-- [ ] Implement app registry, selector, and lifecycle primitives
-- [ ] Implement DI-based tools for instance listing and runtime info
+- [x] Add package versions according to the selected package-management style
+- [x] Create `InSharpMcp.Contracts`
+- [x] Create `InSharpMcp`
+- [x] Define shared result, limits, policy, and adapter contracts
+- [x] Implement client limit parsing, validation, and clamping
+- [x] Implement concurrency options and UI operation queue
+- [x] Implement app registry, selector, and lifecycle primitives
+- [x] Implement DI-based tools for instance listing and runtime info
 - [ ] Implement broker stdio/HTTP transport, authorization, and bounded concurrency
 - [ ] Implement app-side registration/unregistration and stale expiration
 - [ ] Add tests for discovery, registration, routing, authorization, limits, and runtime-info concurrency
@@ -112,6 +112,7 @@ Phase 1 - Safe Foundation
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
+| `dotnet test --no-restore` failed after adding package references | 1 | Reran `dotnet test` with restore enabled; build and tests passed. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.

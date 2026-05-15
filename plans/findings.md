@@ -19,6 +19,10 @@
 - No active Codex goal existed before this session.
 - Goalcraft validation passed for the activated objective at 2,915 objective characters.
 - `planning-with-files` session catchup produced no unsynced context output for the `plans` folder.
+- Repository discovery found no existing `.sln`, `.csproj`, source, or test projects. The repo currently contains planning/docs/license files only.
+- NuGet package search found `ModelContextProtocol` and `ModelContextProtocol.AspNetCore` latest stable package version `1.3.0`.
+- The .NET SDK default is an 11 preview, but stable .NET 8/9/10 SDKs are installed. Projects target `net8.0` per plan.
+- The .NET 11 `dotnet new sln` default is `.slnx`; the solution was explicitly created as standard `.sln`.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -26,10 +30,13 @@
 | Use the existing repository structure where possible before adding new solution files | The implementation should match repo conventions rather than inventing structure prematurely. |
 | Start with Phase 1 safe-foundation slices | Later adapters and tools depend on shared contracts, limits, registry, auth, concurrency, and host structure. |
 | Commit planning files as the first step if tests/build discovery does not reveal an immediate blocker | The user requested frequent commits, and planning state is a coherent setup step. |
+| Scaffold a new .NET solution using the `mcp/server` structure from `plans/PLAN.md` | No existing project structure is present, and the plan specifies the target layout. |
+| Use central package management | The repository is greenfield and central package management keeps project files versionless as requested by `plans/PLAN.md`. |
 
 ## Issues Encountered
 | Issue | Resolution |
 |-------|------------|
+| First test command used `--no-restore` after adding new package references, causing missing package namespaces. | Reran `dotnet test` with restore enabled. |
 
 ## Resources
 - `plans/PLAN.md`
@@ -37,4 +44,4 @@
 - `plans/progress.md`
 
 ## Verification Notes
-- Pending repository discovery and initial build/test command identification.
+- `dotnet test mcp/server/InSharpMcp.sln` passed with 12 tests after restore.
