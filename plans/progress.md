@@ -15,6 +15,8 @@
   - Added `demos/InSharpMcp.Demos.slnx` and included all three demo projects.
   - Fixed solution-level Uno SDK resolution by making the Uno demo project use explicit `Uno.Sdk/6.5.33`.
   - Added `demos/README.md` with build and run commands.
+  - Committed the demo apps in `cef6b8b`.
+  - Marked Phase 11 complete.
 - Files created/modified:
   - `plans/task_plan.md`
   - `plans/findings.md`
@@ -24,6 +26,7 @@
   - `demos/demo.uno/*`
   - `demos/demo.avalonia/*`
   - `demos/demo.winforms/*`
+  - `plans/IMPLEMENTATION_SUMMARY.md`
 
 ### Phase 10: Review-critical Remediation
 - **Status:** complete

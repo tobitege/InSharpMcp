@@ -28,6 +28,7 @@ The .NET SDK prints `NETSDK1057` because the machine's default SDK is an 11 prev
 - Shared adapter contract tests and in-memory fake adapter fixture.
 - Focused unit tests for Phase 1 through Phase 10 behavior.
 - Phase 10 remediation fixed routed tool dispatch, selected-instance stale/ambiguous errors, HTTP bearer/header/query auth extraction, protected-tool auth ordering, trace recording from actual tool execution, `ism_close` queueing, and Uno visual-tree node/text limit enforcement.
+- Phase 11 added buildable demo apps for the planned Uno, Avalonia, and WinForms environments under `demos/`, with a shared demo solution at `demos/InSharpMcp.Demos.slnx`.
 
 ## Validation-Gated Scope
 
@@ -51,3 +52,5 @@ Avalonia and WinForms adapters were not added because no validating host/demo pr
 - `892d9ef` Route tools through selected app clients
 - `78278a6` Enforce shared visual tree node budgets
 - `5efc456` Authorize protected tools before target selection
+- `a0fd5cc` Plan demo app phase
+- `cef6b8b` Add planned environment demo apps

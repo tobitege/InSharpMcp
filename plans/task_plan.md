@@ -115,8 +115,8 @@ Phase 11: Demo apps for planned environments
 - [x] Document run/build commands and any framework-specific validation notes
 - [x] Add demos to the solution or a documented solution structure
 - [x] Run focused demo builds and full `dotnet test mcp/server/InSharpMcp.sln`
-- [ ] Commit coherent demo slices and finish with a clean working tree
-- **Status:** in_progress
+- [x] Commit coherent demo slices and finish with a clean working tree
+- **Status:** complete
 
 ## Key Questions
 1. Which package-management style does this repository currently use?
