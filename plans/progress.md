@@ -31,6 +31,8 @@
   - Added central package management.
   - Added shared contracts, limit policy evaluator, app registry/selector, UI operation queue, service registration, and initial `ism_list_instances`/`ism_get_runtime_info` tools.
   - Added tests for limit defaults/clamping/invalid input, multi-instance registration/selection/stale expiration, and initial tool methods.
+  - Added startup enablement options, authorization policy, bounded MCP call gate, app registration disposal/stale expiration service, stdio broker host, and HTTP broker host wrapper.
+  - Added tests for default-disabled startup, protected-tool authorization, bounded call gate busy behavior, and app registration lifecycle.
 - Files created/modified:
   - `Directory.Packages.props`
   - `Directory.Build.props`
@@ -49,17 +51,19 @@
 | Git cleanliness check | `git status --short` | No output | No output | Pass |
 | Planning session catchup | `session-catchup.py plans` | No unsynced context or actionable recovery output | No output | Pass |
 | Foundation test suite | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 12 tests passed | Pass |
+| Phase 1 transport/policy slice | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 20 tests passed | Pass |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
 |-----------|-------|---------|------------|
 | 2026-05-15 | `dotnet test --no-restore` failed because package references had not been restored | 1 | Reran `dotnet test mcp/server/InSharpMcp.sln` with restore enabled; tests passed. |
+| 2026-05-15 | HTTP host compile failed on unavailable `WebApplication` shutdown methods | 1 | Changed host wrapper to register cancellation with `StopAsync()` and await `RunAsync()`. |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
 | Where am I? | Phase 1 - Safe Foundation. |
-| Where am I going? | Continue Phase 1 with broker transport, auth/concurrency, app-side registration lifecycle, and broader tests. |
+| Where am I going? | Continue Phase 1 with discovery tests and remaining registration/routing/concurrency verification coverage. |
 | What's the goal? | Fully implement `plans/PLAN.md` with verification evidence and a clean final working tree. |
 | What have I learned? | See `plans/findings.md`. |
-| What have I done? | Initialized goal/planning, scaffolded the solution, implemented the first safe-foundation contracts/core slice, and passed 12 tests. |
+| What have I done? | Initialized goal/planning, scaffolded the solution, implemented the first safe-foundation contracts/core slice plus transport/policy/lifecycle services, and passed 20 tests. |

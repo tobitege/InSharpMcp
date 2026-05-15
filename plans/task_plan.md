@@ -23,8 +23,8 @@ Phase 1 - Safe Foundation
 - [x] Implement concurrency options and UI operation queue
 - [x] Implement app registry, selector, and lifecycle primitives
 - [x] Implement DI-based tools for instance listing and runtime info
-- [ ] Implement broker stdio/HTTP transport, authorization, and bounded concurrency
-- [ ] Implement app-side registration/unregistration and stale expiration
+- [x] Implement broker stdio/HTTP transport, authorization, and bounded concurrency
+- [x] Implement app-side registration/unregistration and stale expiration
 - [ ] Add tests for discovery, registration, routing, authorization, limits, and runtime-info concurrency
 - [ ] Commit coherent safe-foundation slices as they pass verification
 - **Status:** in_progress
@@ -113,6 +113,7 @@ Phase 1 - Safe Foundation
 | Error | Attempt | Resolution |
 |-------|---------|------------|
 | `dotnet test --no-restore` failed after adding package references | 1 | Reran `dotnet test` with restore enabled; build and tests passed. |
+| HTTP host wrapper used unavailable `RunAsync(CancellationToken)`/`WaitForShutdownAsync` shapes for `WebApplication` | 1 | Registered cancellation to call `StopAsync()` and awaited `RunAsync()` after configuring URLs. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.

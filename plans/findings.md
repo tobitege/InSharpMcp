@@ -23,6 +23,7 @@
 - NuGet package search found `ModelContextProtocol` and `ModelContextProtocol.AspNetCore` latest stable package version `1.3.0`.
 - The .NET SDK default is an 11 preview, but stable .NET 8/9/10 SDKs are installed. Projects target `net8.0` per plan.
 - The .NET 11 `dotnet new sln` default is `.slnx`; the solution was explicitly created as standard `.sln`.
+- Restored MCP SDK metadata documents `AddMcpServer`, `WithStdioServerTransport`, `WithHttpTransport`, `WithTools<T>`, and `MapMcp`.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -32,11 +33,13 @@
 | Commit planning files as the first step if tests/build discovery does not reveal an immediate blocker | The user requested frequent commits, and planning state is a coherent setup step. |
 | Scaffold a new .NET solution using the `mcp/server` structure from `plans/PLAN.md` | No existing project structure is present, and the plan specifies the target layout. |
 | Use central package management | The repository is greenfield and central package management keeps project files versionless as requested by `plans/PLAN.md`. |
+| Keep broker host classes as thin startup wrappers around SDK hosting APIs | Transport behavior should stay in the official SDK while InSharpMcp owns policy, registry, and adapter routing services. |
 
 ## Issues Encountered
 | Issue | Resolution |
 |-------|------------|
 | First test command used `--no-restore` after adding new package references, causing missing package namespaces. | Reran `dotnet test` with restore enabled. |
+| Initial HTTP host wrapper used `WebApplication` async overloads unavailable in this target shape. | Switched to configured URLs plus cancellation-triggered `StopAsync()` and `RunAsync()`. |
 
 ## Resources
 - `plans/PLAN.md`
@@ -44,4 +47,4 @@
 - `plans/progress.md`
 
 ## Verification Notes
-- `dotnet test mcp/server/InSharpMcp.sln` passed with 12 tests after restore.
+- `dotnet test mcp/server/InSharpMcp.sln` passed with 20 tests after the second Phase 1 slice.
