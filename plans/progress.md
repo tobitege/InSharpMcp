@@ -59,6 +59,7 @@
 | Phase 2 adapter contract harness | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 34 tests passed | Pass |
 | Phase 3 Uno adapter MVP | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 36 tests passed | Pass |
 | Phase 4 screenshot/DataContext | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 42 tests passed | Pass |
+| Phase 5 selectors/waits/accessibility/events | `dotnet test mcp/server/InSharpMcp.sln` | Build adapter and tests pass | 48 tests passed | Pass |
 
 ### Phase 2: Adapter Contract Harness
 - **Status:** complete
@@ -120,6 +121,29 @@
   - `plans/findings.md`
   - `plans/progress.md`
 
+### Phase 5: Selectors, Waits, Accessibility, and Events
+- **Status:** complete
+- Actions taken:
+  - Added JSON-bindable `ElementSelector` and `ElementQueryResult`.
+  - Added deterministic selector matching over `UiTreeSnapshot`.
+  - Added `ism_query_elements` and bounded `ism_wait_for_element`.
+  - Added `IAccessibilityTreeProvider` and `ism_get_accessibility_tree`.
+  - Added bounded redacting `IEventLogProvider` implementation and `ism_get_event_log`.
+  - Added tests for structured selector JSON, deterministic bounded query results, invalid selectors, wait success, accessibility limit routing, and event redaction/filtering.
+- Files created/modified:
+  - `mcp/server/InSharpMcp.Contracts/ElementSelector.cs`
+  - `mcp/server/InSharpMcp.Contracts/ElementQueryResult.cs`
+  - `mcp/server/InSharpMcp.Contracts/IAccessibilityTreeProvider.cs`
+  - `mcp/server/InSharpMcp.Contracts/IEventLogProvider.cs`
+  - `mcp/server/InSharpMcp.Contracts/EventLogEntry.cs`
+  - `mcp/server/InSharpMcp/Selectors/ElementSelectorMatcher.cs`
+  - `mcp/server/InSharpMcp/Events/BoundedEventLog.cs`
+  - `mcp/server/InSharpMcp/Tools/InSharpMcpTools.cs`
+  - `mcp/server/tests/InSharpMcp.Tests/*`
+  - `plans/task_plan.md`
+  - `plans/findings.md`
+  - `plans/progress.md`
+
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
 |-----------|-------|---------|------------|
@@ -130,12 +154,13 @@
 | 2026-05-15 | Uno adapter build failed on nullable `window.Content` passed to visual-tree inspector | 1 | Added an explicit non-null content-root guard. |
 | 2026-05-15 | Visual-tree metadata test expected a value below the policy minimum | 1 | Updated the expected value to the clamped minimum. |
 | 2026-05-15 | Non-Windows screenshot branch returned `Task<ScreenshotResult>` from an async method | 1 | Returned `ScreenshotResult` directly. |
+| 2026-05-15 | Accessibility tool test used an unnamed cancellation argument after a named argument | 1 | Made the cancellation argument named. |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 5 - Selectors, Waits, Accessibility, and Events. |
-| Where am I going? | Implement structured selectors, bounded waits, accessibility tree support, and bounded event logs. |
+| Where am I? | Phase 6 - Interaction Tools. |
+| Where am I going? | Implement protected interaction tool surfaces, validation, unsupported paths, cancellation, serialization, and trace entries. |
 | What's the goal? | Fully implement `plans/PLAN.md` with verification evidence and a clean final working tree. |
 | What have I learned? | See `plans/findings.md`. |
-| What have I done? | Completed Phase 1 through Phase 4 with 42 passing tests, including screenshot tool shape and bounded DataContext metadata. |
+| What have I done? | Completed Phase 1 through Phase 5 with 48 passing tests, including selectors, waits, accessibility, and event logs. |

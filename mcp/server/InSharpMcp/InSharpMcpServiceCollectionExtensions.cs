@@ -1,8 +1,10 @@
 using InSharpMcp.Concurrency;
 using InSharpMcp.Contracts;
+using InSharpMcp.Events;
 using InSharpMcp.Limits;
 using InSharpMcp.Registry;
 using InSharpMcp.Security;
+using InSharpMcp.Selectors;
 using InSharpMcp.Transports;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,6 +25,8 @@ public static class InSharpMcpServiceCollectionExtensions
         services.AddSingleton<ToolLimitPolicy>();
         services.AddSingleton<ToolLimitPolicyEvaluator>();
         services.AddSingleton<ClientLimitConfigurationParser>();
+        services.AddSingleton<ElementSelectorMatcher>();
+        services.AddSingleton<IEventLogProvider, BoundedEventLog>();
         services.AddSingleton(options.Concurrency);
         services.AddSingleton(options.Access);
         services.AddSingleton<McpAuthorization>();

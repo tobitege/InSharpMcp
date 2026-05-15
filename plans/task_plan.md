@@ -4,7 +4,7 @@
 Fully implement the InSharpMcp integration plan in `plans/PLAN.md`, with coherent feature commits, verification evidence, and a clean final working tree.
 
 ## Current Phase
-Phase 5 - Selectors, Waits, Accessibility, and Events
+Phase 6 - Interaction Tools
 
 ## Phases
 
@@ -54,14 +54,14 @@ Phase 5 - Selectors, Waits, Accessibility, and Events
 - **Status:** complete
 
 ### Phase 5: Selectors, Waits, Accessibility, and Events
-- [ ] Implement structured JSON selectors and validation
-- [ ] Add `ism_query_elements`
-- [ ] Add bounded wait/retry support
-- [ ] Add bounded accessibility tree support where available
-- [ ] Add bounded redacted event log capture
-- [ ] Add tests for selector parsing, ordering, waits, bounds, and redaction
-- [ ] Commit tested automation-platform work
-- **Status:** in_progress
+- [x] Implement structured JSON selectors and validation
+- [x] Add `ism_query_elements`
+- [x] Add bounded wait/retry support
+- [x] Add bounded accessibility tree support where available
+- [x] Add bounded redacted event log capture
+- [x] Add tests for selector parsing, ordering, waits, bounds, and redaction
+- [x] Commit tested automation-platform work
+- **Status:** complete
 
 ### Phase 6: Interaction Tools
 - [ ] Implement Windows pointer/key/text input only through proven platform APIs
@@ -70,7 +70,7 @@ Phase 5 - Selectors, Waits, Accessibility, and Events
 - [ ] Add optional protected before/after screenshot trace capture
 - [ ] Add tests for auth, validation, unsupported paths, cancellation, serialization, and trace entries
 - [ ] Commit tested interaction work
-- **Status:** pending
+- **Status:** in_progress
 
 ### Phase 7: Tracing and Assertions
 - [ ] Add bounded trace start/stop tools
@@ -118,6 +118,7 @@ Phase 5 - Selectors, Waits, Accessibility, and Events
 | Uno adapter DI registration treated nullable `window.Content` as non-null | 1 | Added explicit content-root guard before constructing `UnoVisualTreeInspector`. |
 | Visual-tree metadata test expected unclamped `MaxTextCharacters` | 1 | Updated the assertion to expect the configured policy minimum. |
 | Desktop/Skia screenshot branch returned `Task<ScreenshotResult>` inside an async method | 1 | Returned `ScreenshotResult` directly from the non-Windows branch. |
+| Accessibility tool test used a positional cancellation argument after a named argument | 1 | Made the cancellation argument named. |
 
 ## Notes
 - Re-read this file before significant implementation decisions.
