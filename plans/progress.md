@@ -10,10 +10,20 @@
   - Confirmed the goal tool would not create a second durable goal record in this thread, then continued under the user request.
   - Confirmed installed templates include Uno, Avalonia, and WinForms.
   - Reopened planning files with Phase 11 demo-app scope.
+  - Scaffolded Uno, Avalonia, and WinForms demo projects.
+  - Replaced template starter screens with stable controls for selector, input, wait, screenshot, accessibility, and event validation.
+  - Added `demos/InSharpMcp.Demos.slnx` and included all three demo projects.
+  - Fixed solution-level Uno SDK resolution by making the Uno demo project use explicit `Uno.Sdk/6.5.33`.
+  - Added `demos/README.md` with build and run commands.
 - Files created/modified:
   - `plans/task_plan.md`
   - `plans/findings.md`
   - `plans/progress.md`
+  - `demos/README.md`
+  - `demos/InSharpMcp.Demos.slnx`
+  - `demos/demo.uno/*`
+  - `demos/demo.avalonia/*`
+  - `demos/demo.winforms/*`
 
 ### Phase 10: Review-critical Remediation
 - **Status:** complete
@@ -110,6 +120,11 @@
 | Phase 10 Uno bounds slice | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 63 tests passed | Pass |
 | Phase 10 protected auth ordering | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 64 tests passed | Pass |
 | Phase 10 final verification | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 64 tests passed | Pass |
+| Demo Avalonia build | `dotnet build demos/demo.avalonia/InSharpMcp.Demo.Avalonia.csproj` | Build passes | 0 errors | Pass |
+| Demo WinForms build | `dotnet build demos/demo.winforms/InSharpMcp.Demo.WinForms.csproj` | Build passes | 0 errors | Pass |
+| Demo Uno desktop build | `dotnet build demos/demo.uno/InSharpMcp.Demo.Uno/InSharpMcp.Demo.Uno.csproj -f net9.0-desktop` | Build passes | 0 errors | Pass |
+| Demo solution build | `dotnet build demos/InSharpMcp.Demos.slnx` | Build passes | 0 warnings, 0 errors | Pass |
+| Phase 11 server regression suite | `dotnet test mcp/server/InSharpMcp.sln` | Build and tests pass | 64 tests passed | Pass |
 
 ### Phase 2: Adapter Contract Harness
 - **Status:** complete
@@ -265,6 +280,7 @@
 | 2026-05-15 | Visual-tree metadata test expected a value below the policy minimum | 1 | Updated the expected value to the clamped minimum. |
 | 2026-05-15 | Non-Windows screenshot branch returned `Task<ScreenshotResult>` from an async method | 1 | Returned `ScreenshotResult` directly. |
 | 2026-05-15 | Accessibility tool test used an unnamed cancellation argument after a named argument | 1 | Made the cancellation argument named. |
+| 2026-05-15 | Demo solution build could not resolve `Uno.Sdk` because the solution root did not see nested `demo.uno/global.json` | 1 | Changed the Uno demo project SDK to explicit `Uno.Sdk/6.5.33`; aggregate demo build passed. |
 
 ## 5-Question Reboot Check
 | Question | Answer |

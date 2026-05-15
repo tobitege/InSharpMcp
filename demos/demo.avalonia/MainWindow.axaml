@@ -1,0 +1,94 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="720"
+        x:Class="InSharpMcp.Demo.Avalonia.MainWindow"
+        Width="900"
+        Height="720"
+        Title="InSharpMcp Avalonia Demo">
+  <DockPanel Margin="20">
+    <Menu DockPanel.Dock="Top" AutomationProperties.AutomationId="DemoMenu">
+      <MenuItem Header="_File">
+        <MenuItem Header="_Reset form" AutomationProperties.AutomationId="ResetMenuItem" />
+        <MenuItem Header="_Close demo" AutomationProperties.AutomationId="CloseMenuItem" />
+      </MenuItem>
+      <MenuItem Header="_Tools">
+        <MenuItem Header="_Capture state" AutomationProperties.AutomationId="CaptureStateMenuItem" />
+      </MenuItem>
+    </Menu>
+
+    <ScrollViewer AutomationProperties.AutomationId="DemoScrollViewer"
+                  VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="14" Margin="0,16,0,0">
+        <TextBlock AutomationProperties.AutomationId="DemoTitle"
+                   Text="InSharpMcp Avalonia Demo"
+                   FontSize="28"
+                   FontWeight="SemiBold" />
+        <TextBlock AutomationProperties.AutomationId="DemoSubtitle"
+                   Text="Stable controls for selector, input, wait, screenshot, accessibility, and event validation." />
+
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+          <Button AutomationProperties.AutomationId="PrimaryActionButton"
+                  AutomationProperties.Name="Primary action"
+                  Content="Primary action" />
+          <Button Grid.Column="1"
+                  AutomationProperties.AutomationId="SecondaryActionButton"
+                  AutomationProperties.Name="Secondary action"
+                  Content="Secondary action" />
+        </Grid>
+
+        <TextBox AutomationProperties.AutomationId="SingleLineInput"
+                 AutomationProperties.Name="Single-line input"
+                 Watermark="Type a selector target" />
+
+        <TextBox AutomationProperties.AutomationId="EditableTextArea"
+                 AutomationProperties.Name="Editable text area"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 MinHeight="120"
+                 Text="Edit this multiline text to validate text input and metadata capture." />
+
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <CheckBox AutomationProperties.AutomationId="ReadyCheckBox"
+                    Content="Ready state" />
+          <ComboBox AutomationProperties.AutomationId="ModeComboBox"
+                    SelectedIndex="0"
+                    MinWidth="180">
+            <ComboBoxItem Content="Idle" />
+            <ComboBoxItem Content="Running" />
+            <ComboBoxItem Content="Complete" />
+          </ComboBox>
+          <Slider AutomationProperties.AutomationId="ProgressSlider"
+                  Minimum="0"
+                  Maximum="100"
+                  Value="42"
+                  Width="220" />
+          <ProgressBar AutomationProperties.AutomationId="ProgressBar"
+                       Minimum="0"
+                       Maximum="100"
+                       Value="42"
+                       Width="160" />
+        </StackPanel>
+
+        <Border BorderThickness="1"
+                BorderBrush="{DynamicResource ThemeBorderLowBrush}"
+                Padding="12">
+          <ScrollViewer AutomationProperties.AutomationId="LoremIpsumScrollArea"
+                        Height="180"
+                        VerticalScrollBarVisibility="Auto">
+            <TextBlock TextWrapping="Wrap"
+                       Text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer selector checks need stable text, nested controls, scrollable regions, and repeated paragraphs. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec input validation can move focus, type text, and inspect accessible names. Curabitur waits can observe controls appearing, labels changing, and list content remaining deterministic. Praesent commodo cursus magna, vel scelerisque nisl consectetur et. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed posuere consectetur est at lobortis." />
+          </ScrollViewer>
+        </Border>
+
+        <ListBox AutomationProperties.AutomationId="ValidationList"
+                 Height="120">
+          <ListBoxItem Content="Selector target row" />
+          <ListBoxItem Content="Accessibility target row" />
+          <ListBoxItem Content="Event capture target row" />
+        </ListBox>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

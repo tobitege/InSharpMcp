@@ -1,0 +1,89 @@
+<Page x:Class="InSharpMcp.Demo.Uno.MainPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+  <Grid RowDefinitions="Auto,*" Padding="24" RowSpacing="16">
+    <MenuBar AutomationProperties.AutomationId="DemoMenu">
+      <MenuBarItem Title="File">
+        <MenuFlyoutItem Text="Reset form" AutomationProperties.AutomationId="ResetMenuItem" />
+        <MenuFlyoutItem Text="Close demo" AutomationProperties.AutomationId="CloseMenuItem" />
+      </MenuBarItem>
+      <MenuBarItem Title="Tools">
+        <MenuFlyoutItem Text="Capture state" AutomationProperties.AutomationId="CaptureStateMenuItem" />
+      </MenuBarItem>
+    </MenuBar>
+
+    <ScrollViewer Grid.Row="1"
+                  AutomationProperties.AutomationId="DemoScrollViewer"
+                  VerticalScrollBarVisibility="Auto">
+      <StackPanel Spacing="16">
+        <TextBlock AutomationProperties.AutomationId="DemoTitle"
+                   Text="InSharpMcp Uno Demo"
+                   FontSize="28"
+                   FontWeight="SemiBold" />
+        <TextBlock AutomationProperties.AutomationId="DemoSubtitle"
+                   Text="Stable controls for selector, input, wait, screenshot, accessibility, and event validation." />
+
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+          <Button AutomationProperties.AutomationId="PrimaryActionButton"
+                  AutomationProperties.Name="Primary action"
+                  Content="Primary action" />
+          <Button Grid.Column="1"
+                  AutomationProperties.AutomationId="SecondaryActionButton"
+                  AutomationProperties.Name="Secondary action"
+                  Content="Secondary action" />
+        </Grid>
+
+        <TextBox AutomationProperties.AutomationId="SingleLineInput"
+                 AutomationProperties.Name="Single-line input"
+                 Header="Single-line input"
+                 PlaceholderText="Type a selector target" />
+
+        <TextBox AutomationProperties.AutomationId="EditableTextArea"
+                 AutomationProperties.Name="Editable text area"
+                 Header="Editable text area"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 MinHeight="120"
+                 Text="Edit this multiline text to validate text input and metadata capture." />
+
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <CheckBox AutomationProperties.AutomationId="ReadyCheckBox"
+                    Content="Ready state" />
+          <ComboBox AutomationProperties.AutomationId="ModeComboBox"
+                    Header="Mode"
+                    SelectedIndex="0"
+                    MinWidth="180">
+            <ComboBoxItem Content="Idle" />
+            <ComboBoxItem Content="Running" />
+            <ComboBoxItem Content="Complete" />
+          </ComboBox>
+          <Slider AutomationProperties.AutomationId="ProgressSlider"
+                  Header="Progress"
+                  Minimum="0"
+                  Maximum="100"
+                  Value="42"
+                  Width="220" />
+        </StackPanel>
+
+        <ScrollViewer AutomationProperties.AutomationId="LoremIpsumScrollArea"
+                      Height="180"
+                      BorderThickness="1"
+                      BorderBrush="{ThemeResource TextControlBorderBrush}"
+                      Padding="12"
+                      VerticalScrollBarVisibility="Auto">
+          <TextBlock TextWrapping="Wrap"
+                     Text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer selector checks need stable text, nested controls, scrollable regions, and repeated paragraphs. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec input validation can move focus, type text, and inspect accessible names. Curabitur waits can observe controls appearing, labels changing, and list content remaining deterministic. Praesent commodo cursus magna, vel scelerisque nisl consectetur et. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed posuere consectetur est at lobortis." />
+        </ScrollViewer>
+
+        <ListView AutomationProperties.AutomationId="ValidationList"
+                  Header="Validation list"
+                  Height="120">
+          <ListViewItem Content="Selector target row" />
+          <ListViewItem Content="Accessibility target row" />
+          <ListViewItem Content="Event capture target row" />
+        </ListView>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</Page>

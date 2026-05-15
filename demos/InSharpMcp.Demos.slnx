@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/demo.avalonia/">
+    <Project Path="demo.avalonia/InSharpMcp.Demo.Avalonia.csproj" />
+  </Folder>
+  <Folder Name="/demo.uno/">
+    <Project Path="demo.uno/InSharpMcp.Demo.Uno/InSharpMcp.Demo.Uno.csproj" />
+  </Folder>
+  <Folder Name="/demo.winforms/">
+    <Project Path="demo.winforms/InSharpMcp.Demo.WinForms.csproj" />
+  </Folder>
+</Solution>

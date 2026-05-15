@@ -43,6 +43,7 @@
 - Uno visual-tree traversal now uses a shared `NodeVisitBudget` so node limits are consumed globally across sibling branches, and snapshot node metadata uses the caller's text limit instead of default limits.
 - New demo-app goal targets the three planned environments in `plans/PLAN.md`: `demos/demo.uno`, `demos/demo.avalonia`, and `demos/demo.winforms`.
 - Installed .NET templates include `unoapp`, `avalonia.app`, and `winforms`, so each demo can start from a framework-native template.
+- `demos/InSharpMcp.Demos.slnx` builds all three demo projects. The first aggregate build failed because Uno SDK version resolution could not see the nested `demo.uno/global.json`; setting the Uno demo project SDK to `Uno.Sdk/6.5.33` fixed the solution-level build.
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -95,3 +96,8 @@
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 63 tests after fixing Uno traversal/text-limit handling and adding `NodeVisitBudget` coverage.
 - `dotnet test mcp/server/InSharpMcp.sln` passed with 64 tests after proving protected tools authorize before target selection.
 - Final Phase 10 `dotnet test mcp/server/InSharpMcp.sln` passed with 64 tests.
+- `dotnet build demos/demo.avalonia/InSharpMcp.Demo.Avalonia.csproj` passed.
+- `dotnet build demos/demo.winforms/InSharpMcp.Demo.WinForms.csproj` passed.
+- `dotnet build demos/demo.uno/InSharpMcp.Demo.Uno/InSharpMcp.Demo.Uno.csproj -f net9.0-desktop` passed.
+- `dotnet build demos/InSharpMcp.Demos.slnx` passed with 0 warnings and 0 errors.
+- Final Phase 11 `dotnet test mcp/server/InSharpMcp.sln` passed with 64 tests after adding demo package versions and projects.

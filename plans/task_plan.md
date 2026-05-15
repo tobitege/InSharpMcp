@@ -108,13 +108,13 @@ Phase 11: Demo apps for planned environments
 - **Status:** complete
 
 ### Phase 11: Demo Apps for Planned Environments
-- [ ] Create and build `demos/demo.uno`
-- [ ] Create and build `demos/demo.avalonia`
-- [ ] Create and build `demos/demo.winforms`
-- [ ] Include simple menu, buttons, single-line input, editable text area, scrollable lorem ipsum, labels/text blocks, and adapter-specific controls in each demo
-- [ ] Document run/build commands and any framework-specific validation notes
-- [ ] Add demos to the solution or a documented solution structure
-- [ ] Run focused demo builds and full `dotnet test mcp/server/InSharpMcp.sln`
+- [x] Create and build `demos/demo.uno`
+- [x] Create and build `demos/demo.avalonia`
+- [x] Create and build `demos/demo.winforms`
+- [x] Include simple menu, buttons, single-line input, editable text area, scrollable lorem ipsum, labels/text blocks, and adapter-specific controls in each demo
+- [x] Document run/build commands and any framework-specific validation notes
+- [x] Add demos to the solution or a documented solution structure
+- [x] Run focused demo builds and full `dotnet test mcp/server/InSharpMcp.sln`
 - [ ] Commit coherent demo slices and finish with a clean working tree
 - **Status:** in_progress
 
