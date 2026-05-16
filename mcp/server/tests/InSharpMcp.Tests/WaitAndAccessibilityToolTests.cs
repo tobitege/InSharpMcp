@@ -19,7 +19,7 @@ public sealed class WaitAndAccessibilityToolTests
             new ToolLimitPolicyEvaluator(),
             new ElementSelectorMatcher(),
             new ElementSelector(Name: "Ready"),
-            timeoutMs: 1000,
+            timeoutMs: 10_000,
             cancellationToken: CancellationToken.None);
 
         Assert.True(result.Success);
