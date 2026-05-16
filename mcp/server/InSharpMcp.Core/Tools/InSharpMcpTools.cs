@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json;
 using InSharpMcp.Contracts;
 using InSharpMcp.Interaction;
 using InSharpMcp.Limits;
@@ -381,6 +382,46 @@ public sealed class InSharpMcpTools
             "ism_element_peer_default_action",
             "interaction",
             (client, token) => client.InvokeDefaultActionAsync(elementIdentifier, token),
+            cancellationToken);
+    }
+
+    [McpServerTool(Name = "ism_set_element_property", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
+    [Description("Set a public settable property on the selected UI element or its direct DataContext. Intended for developer debugging and tests.")]
+    public static Task<ToolResult> SetElementProperty(
+        AppInstanceRouter router,
+        string elementIdentifier,
+        string propertyName,
+        JsonElement value,
+        string targetObject = ElementPropertyTarget.Element,
+        AppTargetSelector? target = null,
+        CancellationToken cancellationToken = default)
+    {
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
+        }
+
+        if (string.IsNullOrWhiteSpace(elementIdentifier))
+        {
+            return Task.FromResult(ToolResult.Fail("Element identifier is required.", "invalid_element_identifier"));
+        }
+
+        if (string.IsNullOrWhiteSpace(propertyName))
+        {
+            return Task.FromResult(ToolResult.Fail("Property name is required.", "invalid_property"));
+        }
+
+        if (value.ValueKind == JsonValueKind.Undefined)
+        {
+            return Task.FromResult(ToolResult.Fail("Property value is required.", "invalid_value"));
+        }
+
+        return RunRecordedToolAsync(
+            route,
+            "ism_set_element_property",
+            "interaction",
+            (client, token) => client.SetElementPropertyAsync(elementIdentifier, targetObject, propertyName, value, token),
             cancellationToken);
     }
 

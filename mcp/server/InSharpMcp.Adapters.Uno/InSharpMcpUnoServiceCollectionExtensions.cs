@@ -33,6 +33,11 @@ public static class InSharpMcpUnoServiceCollectionExtensions
             var root = window.Content ?? throw new InvalidOperationException("The Uno window has no content root.");
             return new UnoAutomationPeerInvoker(root, provider.GetRequiredService<IUiDispatcher>());
         });
+        services.AddSingleton<IElementPropertyEditor>(provider =>
+        {
+            var root = window.Content ?? throw new InvalidOperationException("The Uno window has no content root.");
+            return new UnoElementPropertyEditor(root, provider.GetRequiredService<IUiDispatcher>());
+        });
         services.AddSingleton<IAccessibilityTreeProvider, UnoAccessibilityTreeProvider>();
         return services;
     }

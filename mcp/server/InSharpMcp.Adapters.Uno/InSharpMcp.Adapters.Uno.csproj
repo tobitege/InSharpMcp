@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\SharedSource\ElementPropertyEditor.cs" Link="ElementPropertyEditor.cs" />
     <Compile Include="..\SharedSource\WindowsInput.cs" Link="WindowsInput.cs" />
     <ProjectReference Include="..\InSharpMcp.Contracts\InSharpMcp.Contracts.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />

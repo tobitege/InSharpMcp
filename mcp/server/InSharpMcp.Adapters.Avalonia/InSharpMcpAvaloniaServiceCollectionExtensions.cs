@@ -40,6 +40,12 @@ public static class InSharpMcpAvaloniaServiceCollectionExtensions
                 ?? throw new InvalidOperationException("The Avalonia window content root must be a Control.");
             return new AvaloniaAutomationPeerInvoker(root, provider.GetRequiredService<IUiDispatcher>());
         });
+        services.AddSingleton<IElementPropertyEditor>(provider =>
+        {
+            var root = window.Content as Control
+                ?? throw new InvalidOperationException("The Avalonia window content root must be a Control.");
+            return new AvaloniaElementPropertyEditor(root, provider.GetRequiredService<IUiDispatcher>());
+        });
         services.AddSingleton<IAccessibilityTreeProvider, AvaloniaAccessibilityTreeProvider>();
         return services;
     }

@@ -92,6 +92,22 @@ internal sealed class RemoteAppInstanceClient : IAppInstanceClient
             dataType: null,
             cancellationToken);
 
+    public Task<ToolResult> SetElementPropertyAsync(
+        string elementIdentifier,
+        string targetObject,
+        string propertyName,
+        System.Text.Json.JsonElement value,
+        CancellationToken cancellationToken) =>
+        SendToolAsync(
+            new LocalAppRequest(
+                LocalAppOperation.SetElementProperty,
+                ElementIdentifier: elementIdentifier,
+                TargetObject: targetObject,
+                PropertyName: propertyName,
+                PropertyValue: value),
+            typeof(ElementPropertySetResult),
+            cancellationToken);
+
     public Task<ToolResult> CloseAsync(CancellationToken cancellationToken) =>
         SendToolAsync(
             new LocalAppRequest(LocalAppOperation.Close),

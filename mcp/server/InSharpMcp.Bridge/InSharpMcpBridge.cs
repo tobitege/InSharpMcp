@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using InSharpMcp.Contracts;
 using InSharpMcp.Contracts.LocalTransport;
 
@@ -14,6 +15,7 @@ public sealed class InSharpMcpBridge : IAsyncDisposable, IDisposable
     private readonly IAccessibilityTreeProvider _accessibilityTreeProvider;
     private readonly IPointerInputSimulator _inputSimulator;
     private readonly IAutomationPeerInvoker _automationPeerInvoker;
+    private readonly IElementPropertyEditor _propertyEditor;
     private readonly IAppProvider _appProvider;
     private readonly LocalBridgeOptions _options;
     private readonly SemaphoreSlim _operationGate = new(1, 1);
@@ -29,13 +31,15 @@ public sealed class InSharpMcpBridge : IAsyncDisposable, IDisposable
         IPointerInputSimulator inputSimulator,
         IAutomationPeerInvoker automationPeerInvoker,
         IAppProvider appProvider,
-        LocalBridgeOptions? options = null)
+        LocalBridgeOptions? options = null,
+        IElementPropertyEditor? propertyEditor = null)
     {
         _treeInspector = treeInspector;
         _screenshotProvider = screenshotProvider;
         _accessibilityTreeProvider = accessibilityTreeProvider;
         _inputSimulator = inputSimulator;
         _automationPeerInvoker = automationPeerInvoker;
+        _propertyEditor = propertyEditor ?? UnsupportedElementPropertyEditor.Instance;
         _appProvider = appProvider;
         _options = options ?? new LocalBridgeOptions();
     }
@@ -285,6 +289,12 @@ public sealed class InSharpMcpBridge : IAsyncDisposable, IDisposable
             LocalAppOperation.KeyPress => _inputSimulator.KeyPressAsync(Required(request.Key), request.Modifiers ?? Array.Empty<string>(), cancellationToken),
             LocalAppOperation.TypeText => _inputSimulator.TypeTextAsync(Required(request.Text), cancellationToken),
             LocalAppOperation.ElementPeerDefaultAction => _automationPeerInvoker.InvokeDefaultActionAsync(Required(request.ElementIdentifier), cancellationToken),
+            LocalAppOperation.SetElementProperty => _propertyEditor.SetElementPropertyAsync(
+                Required(request.ElementIdentifier),
+                request.TargetObject ?? ElementPropertyTarget.Element,
+                Required(request.PropertyName),
+                Required(request.PropertyValue),
+                cancellationToken),
             LocalAppOperation.Close => _appProvider.CloseAsync(cancellationToken),
             _ => Task.FromResult(ToolResult.Fail($"Unknown bridge operation '{request.Operation}'.", "bad_request")),
         };
@@ -302,4 +312,29 @@ public sealed class InSharpMcpBridge : IAsyncDisposable, IDisposable
         string.IsNullOrWhiteSpace(value)
             ? throw new InvalidOperationException("The bridge request was missing a required value.")
             : value;
+
+    private static JsonElement Required(JsonElement? value) =>
+        value is { ValueKind: not JsonValueKind.Undefined }
+            ? value.Value
+            : throw new InvalidOperationException("The bridge request was missing a required value.");
+
+    private sealed class UnsupportedElementPropertyEditor : IElementPropertyEditor
+    {
+        public static readonly UnsupportedElementPropertyEditor Instance = new();
+
+        public Task<ToolResult> SetElementPropertyAsync(
+            string elementIdentifier,
+            string targetObject,
+            string propertyName,
+            JsonElement value,
+            CancellationToken cancellationToken)
+        {
+            _ = elementIdentifier;
+            _ = targetObject;
+            _ = propertyName;
+            _ = value;
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(ToolResult.Fail("Element property editing is unsupported by this adapter.", "unsupported"));
+        }
+    }
 }

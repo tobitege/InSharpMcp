@@ -73,9 +73,9 @@ The server code lives under `mcp/server`.
 | `mcp/server/InSharpMcp.Core` | Reusable MCP core library: routing, registry, security, limits, event log, trace store, selectors, assertions, transports, and `ism_` tools. |
 | `mcp/server/InSharpMcp.Broker` | Main MCP broker process used by IDEs, MCP clients, and other third-party integrations. |
 | `mcp/server/InSharpMcp.Bridge` | App-side local bridge that registers a running app instance with the broker and carries UI operations back to the live adapter. |
-| `mcp/server/InSharpMcp.Adapters.Uno` | Uno/WinUI adapter for dispatcher, visual tree, metadata, DataContext, screenshots where supported, inspection-tree accessibility metadata, Windows input, and command-backed default action invocation. |
-| `mcp/server/InSharpMcp.Adapters.Avalonia` | Avalonia adapter for dispatcher, visual tree, metadata, DataContext, screenshots for measured controls, inspection-tree accessibility metadata, Windows input, and command-backed default action invocation. |
-| `mcp/server/InSharpMcp.Adapters.WinForms` | WinForms adapter for dispatcher, control tree, metadata, Tag-based DataContext, screenshots, inspection-tree accessibility metadata, Windows input, and button default action invocation. |
+| `mcp/server/InSharpMcp.Adapters.Uno` | Uno/WinUI adapter for dispatcher, visual tree, metadata, DataContext, screenshots where supported, inspection-tree accessibility metadata, Windows input, command-backed default action invocation, and property editing. |
+| `mcp/server/InSharpMcp.Adapters.Avalonia` | Avalonia adapter for dispatcher, visual tree, metadata, DataContext, screenshots for measured controls, inspection-tree accessibility metadata, Windows input, command-backed default action invocation, and property editing. |
+| `mcp/server/InSharpMcp.Adapters.WinForms` | WinForms adapter for dispatcher, control tree, metadata, Tag-based DataContext, screenshots, inspection-tree accessibility metadata, Windows input, button default action invocation, and property editing. |
 | `mcp/server/SharedSource` | Source files compiled into multiple adapter assemblies without introducing another project or NuGet package. |
 | `mcp/server/tests` | Core tests, shared adapter contract tests, and framework adapter tests. |
 | `demos` | Uno, Avalonia, and WinForms demo apps for manual adapter validation. |
@@ -118,7 +118,7 @@ An MCP client talks to `InSharpMcp.Broker`, the main MCP process used by IDEs, M
 
 A running app does not expose MCP directly. It references `InSharpMcp.Bridge` plus exactly one framework adapter package. The Bridge registers an `AppInstanceDescriptor` with the broker over a local named pipe and carries broker requests back to the live app process.
 
-Adapters provide the framework-specific implementation: UI-thread dispatch, visual tree inspection, metadata, DataContext inspection, screenshots, accessibility data, input, default actions, and close behavior where supported.
+Adapters provide the framework-specific implementation: UI-thread dispatch, visual tree inspection, metadata, DataContext inspection, screenshots, accessibility data, input, default actions, property editing, and close behavior where supported.
 
 When exactly one compatible app instance is registered, tools can run without an explicit target. When more than one instance matches, InSharpMcp returns `ambiguous_target` instead of guessing. When a selected instance has no active client connection, it returns `stale_instance`.
 
@@ -296,8 +296,13 @@ var registration = new AppBridgeRegistration(
         "runtime",
         "visualtree",
         "metadata",
+        "datacontext",
         "screenshot",
-        "accessibility"
+        "accessibility",
+        "input",
+        "default-action",
+        "property-editing",
+        "close"
     });
 
 await provider.GetRequiredService<InSharpMcpBridge>().StartAsync(registration);
@@ -315,15 +320,15 @@ The adapters share the same contract shape, but platform support is intentionall
 
 | Adapter | Implemented |
 |---------|-------------|
-| Uno | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, Windows screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed `ButtonBase` default action invocation. |
-| Avalonia | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, screenshot capture for measured controls, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed default action invocation through `ICommandSource`. |
-| WinForms | UI dispatch, app info/close, bounded control tree, element metadata, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, default action invocation for `IButtonControl`. |
+| Uno | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, Windows screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed `ButtonBase` default action invocation, and public property editing for elements and direct DataContext objects. |
+| Avalonia | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, screenshot capture for measured controls, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed default action invocation through `ICommandSource`, and public property editing for elements and direct DataContext objects. |
+| WinForms | UI dispatch, app info/close, bounded control tree, element metadata, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, default action invocation for `IButtonControl`, and public property editing for controls and Tag-based DataContext objects. |
 
 Unsupported results are normal tool outcomes. They let MCP clients distinguish "this platform path has no validated adapter implementation" from a failure in the app.
 
 ## Interaction Behavior
 
-Pointer, keyboard, text, and default-action tools are protected operations. They are routed through the selected app instance, run on the adapter dispatcher where UI state is needed, and use structured `ToolResult` outcomes.
+Pointer, keyboard, text, default-action, and property-editing tools are protected operations. They are routed through the selected app instance, run on the adapter dispatcher where UI state is needed, and use structured `ToolResult` outcomes.
 
 Pointer coordinates are adapter-root-relative, not raw desktop/screenshot coordinates. WinForms translates them with `Control.PointToScreen`. Avalonia translates them with Avalonia `PointToScreen`. Uno translates them through the Windows target's native HWND when available; Uno Desktop/Skia pointer clicks remain `unsupported` until a validated backend-specific screen-coordinate path exists.
 
@@ -332,6 +337,8 @@ When a caller starts from visual evidence such as a screenshot or UI Automation 
 Key and text input use native Windows input APIs instead of fabricated framework events. Key presses accept a single alphanumeric character, `F1` through `F12`, or one of `enter`, `escape`, `tab`, `backspace`, `delete`, `space`, `arrowup`, `arrowdown`, `arrowleft`, `arrowright`, `home`, `end`, `pageup`, and `pagedown`. Modifiers are `alt`, `control`/`ctrl`, `shift`, and `meta`/`win`. Text input is capped by the interaction validator.
 
 Default actions use public control contracts only. Uno invokes `ButtonBase.Command`, Avalonia invokes `ICommandSource.Command`, and WinForms invokes `IButtonControl.PerformClick()`. Elements without those public action surfaces return structured `unsupported`.
+
+Property editing is a developer/debug feature exposed through `ism_set_element_property`. It can set public settable properties on the selected UI element or on its direct DataContext object. Values are supplied as JSON and converted only to supported simple types: strings, booleans, numbers, enums, `DateTime`, `DateTimeOffset`, `Guid`, and framework types with validated string conversion such as colors or brushes where the adapter framework exposes a public converter or `Parse` method. It does not recursively mutate arbitrary object graphs.
 
 ## Client Limit Configuration
 
@@ -381,6 +388,7 @@ ism_pointer_click
 ism_key_press
 ism_type_text
 ism_element_peer_default_action
+ism_set_element_property
 ism_close
 ```
 
@@ -467,9 +475,9 @@ Example initial result:
 }
 ```
 
-If the agent already knows what it is looking for, it can use `ism_query_elements` directly with fields such as `type`, `name`, or `automationId`. For a first overview, `ism_visualtree_snapshot` is the safer starting point; then use the returned `elementIdentifier` with `ism_get_element_metadata`, `ism_get_element_datacontext`, or `ism_element_peer_default_action`. Collapsed or virtualized items appear only when the UI framework has realized them in the current tree.
+If the agent already knows what it is looking for, it can use `ism_query_elements` directly with fields such as `type`, `name`, or `automationId`. For a first overview, `ism_visualtree_snapshot` is the safer starting point; then use the returned `elementIdentifier` with `ism_get_element_metadata`, `ism_get_element_datacontext`, `ism_element_peer_default_action`, or `ism_set_element_property`. Collapsed or virtualized items appear only when the UI framework has realized them in the current tree.
 
-Element identifiers use adapter-generated tree paths such as `0`, `0/0`, or `0/1/2`. The root is always `0`; each following segment is a zero-based child index. For example, `0/1/2` means root element, second child, then third child. Use `ism_visualtree_snapshot` or `ism_query_elements` to discover identifiers, then pass the identifier to metadata, DataContext, or default-action tools.
+Element identifiers use adapter-generated tree paths such as `0`, `0/0`, or `0/1/2`. The root is always `0`; each following segment is a zero-based child index. For example, `0/1/2` means root element, second child, then third child. Use `ism_visualtree_snapshot` or `ism_query_elements` to discover identifiers, then pass the identifier to metadata, DataContext, property-editing, or default-action tools.
 
 Element identifiers are handles for the current UI tree shape, not stable application IDs. If the UI tree changes because controls are added, removed, expanded, collapsed, or virtualized, a previously discovered path can point to a different element or stop resolving. Prefer `automationId`, `name`, `text`, or `type` for stable queries where the app exposes them.
 
@@ -493,6 +501,7 @@ The tool surface uses the `ism_` prefix.
 | `ism_key_press` | Request a key press. This is protected and may return `unsupported`. |
 | `ism_type_text` | Request text input. This is protected and may return `unsupported`. |
 | `ism_element_peer_default_action` | Invoke a public default action where the adapter supports it. This is protected. |
+| `ism_set_element_property` | Set a public settable property on an element or its direct DataContext object. This is protected. |
 | `ism_close` | Request a graceful close. This is protected. |
 | `ism_start_trace` | Start recording bounded events for a selected instance. |
 | `ism_stop_trace` | Stop a trace and return a summary. |
@@ -506,7 +515,7 @@ Normal assertion failures return successful tool calls with an `AssertionResult`
 
 Visual-tree snapshots are built from `UiElementNode`. Nodes include an element identifier, type, optional name, optional automation ID, optional text, optional role, optional visible/enabled states, and children.
 
-Element metadata uses the same safe fields without child nodes. DataContext metadata includes the DataContext type name and public primitive/string-like properties only. It does not recursively walk arbitrary object graphs, and sensitive property names such as password, secret, token, or key are redacted.
+Element metadata uses the same safe fields without child nodes. DataContext metadata includes the DataContext type name and public primitive/string-like properties only. It does not recursively walk arbitrary object graphs, and sensitive property names such as password, secret, token, or key are redacted. Property-editing results include the element identifier, edited target object, property name, target type, property type, and formatted previous/new values where readable.
 
 Trace summaries contain a trace ID, timestamps, bounded event entries, and a truncation flag.
 

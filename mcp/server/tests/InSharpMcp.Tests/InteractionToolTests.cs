@@ -3,6 +3,7 @@ using InSharpMcp.Contracts;
 using InSharpMcp.Events;
 using InSharpMcp.Interaction;
 using InSharpMcp.Tools;
+using System.Text.Json;
 
 namespace InSharpMcp.Tests;
 
@@ -77,6 +78,33 @@ public sealed class InteractionToolTests
         Assert.Equal("unsupported", result.ErrorCode);
     }
 
+    [Fact]
+    public async Task SetElementProperty_RoutesToPropertyEditorAndRecordsEvent()
+    {
+        var log = new BoundedEventLog();
+        var editor = new RecordingElementPropertyEditor();
+        var client = ToolRoutingFixture.CreateClient(
+            propertyEditor: editor,
+            eventLog: log);
+        var router = ToolRoutingFixture.CreateRouter(client);
+        using var document = JsonDocument.Parse("\"Updated\"");
+
+        var result = await InSharpMcpTools.SetElementProperty(
+            router,
+            "0/1",
+            "Text",
+            document.RootElement,
+            cancellationToken: CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal("0/1", editor.ElementIdentifier);
+        Assert.Equal(ElementPropertyTarget.Element, editor.TargetObject);
+        Assert.Equal("Text", editor.PropertyName);
+        Assert.Equal(JsonValueKind.String, editor.ValueKind);
+        var entry = Assert.Single(log.List(new HashSet<string>(StringComparer.Ordinal) { "interaction" }, maximumCount: 10));
+        Assert.Equal("ism_set_element_property", entry.Message);
+    }
+
     private sealed class RecordingInputSimulator : IPointerInputSimulator
     {
         public Task<ToolResult> PointerClickAsync(double x, double y, CancellationToken cancellationToken)
@@ -110,6 +138,32 @@ public sealed class InteractionToolTests
             cancellationToken.ThrowIfCancellationRequested();
             _ = elementIdentifier;
             return Task.FromResult(ToolResult.Fail("unsupported", "unsupported"));
+        }
+    }
+
+    private sealed class RecordingElementPropertyEditor : IElementPropertyEditor
+    {
+        public string? ElementIdentifier { get; private set; }
+
+        public string? TargetObject { get; private set; }
+
+        public string? PropertyName { get; private set; }
+
+        public JsonValueKind ValueKind { get; private set; }
+
+        public Task<ToolResult> SetElementPropertyAsync(
+            string elementIdentifier,
+            string targetObject,
+            string propertyName,
+            JsonElement value,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ElementIdentifier = elementIdentifier;
+            TargetObject = targetObject;
+            PropertyName = propertyName;
+            ValueKind = value.ValueKind;
+            return Task.FromResult(ToolResult.Ok("Element property set."));
         }
     }
 }

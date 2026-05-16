@@ -1,5 +1,6 @@
 using InSharpMcp.Adapters.WinForms;
 using InSharpMcp.Contracts;
+using System.Text.Json;
 using System.Windows.Forms;
 
 namespace InSharpMcp.Adapters.WinForms.Tests;
@@ -115,6 +116,38 @@ public sealed class WinFormsAdapterTests
         });
 
     [Fact]
+    public Task ElementPropertyEditor_SetsElementAndDataContextProperties()
+        => RunStaAsync(async () =>
+        {
+            using var form = CreateForm();
+            var button = Assert.IsType<Button>(form.Controls[0]);
+            var dataContext = new MutableDataContext { Title = "Before" };
+            button.Tag = dataContext;
+            var dispatcher = new WinFormsUiDispatcher(form);
+            var editor = new WinFormsElementPropertyEditor(form, dispatcher);
+            using var textValue = JsonDocument.Parse("\"Updated action\"");
+            using var dataContextValue = JsonDocument.Parse("true");
+
+            var elementResult = await editor.SetElementPropertyAsync(
+                "0/0",
+                ElementPropertyTarget.Element,
+                nameof(Button.Text),
+                textValue.RootElement,
+                CancellationToken.None);
+            var dataContextResult = await editor.SetElementPropertyAsync(
+                "0/0",
+                ElementPropertyTarget.DataContext,
+                nameof(MutableDataContext.IsDirty),
+                dataContextValue.RootElement,
+                CancellationToken.None);
+
+            Assert.True(elementResult.Success);
+            Assert.Equal("Updated action", button.Text);
+            Assert.True(dataContextResult.Success);
+            Assert.True(dataContext.IsDirty);
+        });
+
+    [Fact]
     public Task PointerInputSimulator_TranslatesClientCoordinatesToScreenCoordinates() =>
         RunStaAsync(async () =>
         {
@@ -193,6 +226,13 @@ public sealed class WinFormsAdapterTests
     }
 
     private sealed record PathLookupDataContext(string Value);
+
+    private sealed class MutableDataContext
+    {
+        public string Title { get; set; } = string.Empty;
+
+        public bool IsDirty { get; set; }
+    }
 
     private static Task RunStaAsync(Func<Task> action)
     {

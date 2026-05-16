@@ -1,6 +1,7 @@
 using InSharpMcp.Adapters.Avalonia;
 using InSharpMcp.Contracts;
 using Avalonia.Controls;
+using System.Text.Json;
 using System.Windows.Input;
 
 namespace InSharpMcp.Adapters.Avalonia.Tests;
@@ -93,6 +94,39 @@ public sealed class AvaloniaAdapterTests
 
         Assert.True(invokeResult.Success);
         Assert.Equal("payload", command.Parameter);
+    }
+
+    [Fact]
+    public async Task ElementPropertyEditor_SetsElementAndDataContextProperties()
+    {
+        var root = new StackPanel();
+        var button = new Button
+        {
+            Name = "Before",
+            DataContext = new MutableDataContext { Count = 1 },
+        };
+        root.Children.Add(button);
+        var editor = new AvaloniaElementPropertyEditor(root, new ImmediateDispatcher());
+        using var nameValue = JsonDocument.Parse("\"After\"");
+        using var dataContextValue = JsonDocument.Parse("42");
+
+        var elementResult = await editor.SetElementPropertyAsync(
+            "0/0",
+            ElementPropertyTarget.Element,
+            nameof(Button.Name),
+            nameValue.RootElement,
+            CancellationToken.None);
+        var dataContextResult = await editor.SetElementPropertyAsync(
+            "0/0",
+            ElementPropertyTarget.DataContext,
+            nameof(MutableDataContext.Count),
+            dataContextValue.RootElement,
+            CancellationToken.None);
+
+        Assert.True(elementResult.Success);
+        Assert.Equal("After", button.Name);
+        Assert.True(dataContextResult.Success);
+        Assert.Equal(42, Assert.IsType<MutableDataContext>(button.DataContext).Count);
     }
 
     [Fact]
@@ -212,4 +246,9 @@ public sealed class AvaloniaAdapterTests
     }
 
     private sealed record PathLookupDataContext(string Value);
+
+    private sealed class MutableDataContext
+    {
+        public int Count { get; set; }
+    }
 }

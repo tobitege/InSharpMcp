@@ -77,7 +77,8 @@ public sealed class StdioMcpProtocolTests
             Assert.Contains("ism_list_instances", toolNames);
             Assert.Contains("ism_visualtree_snapshot", toolNames);
             Assert.Contains("ism_pointer_click", toolNames);
-            Assert.Equal(20, toolNames.Length);
+            Assert.Contains("ism_set_element_property", toolNames);
+            Assert.Equal(21, toolNames.Length);
             Assert.False(ToolHasInputProperty(pointerClick, "authorizationToken"));
             AssertToolAnnotation(pointerClick, "readOnlyHint", expected: false);
             AssertToolAnnotation(pointerClick, "destructiveHint", expected: true);

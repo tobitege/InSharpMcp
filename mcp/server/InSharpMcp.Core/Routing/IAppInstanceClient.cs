@@ -36,6 +36,13 @@ public interface IAppInstanceClient
 
     Task<ToolResult> InvokeDefaultActionAsync(string elementIdentifier, CancellationToken cancellationToken);
 
+    Task<ToolResult> SetElementPropertyAsync(
+        string elementIdentifier,
+        string targetObject,
+        string propertyName,
+        System.Text.Json.JsonElement value,
+        CancellationToken cancellationToken);
+
     Task<ToolResult> CloseAsync(CancellationToken cancellationToken);
 
     void RecordEvent(EventLogEntry entry);

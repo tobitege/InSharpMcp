@@ -41,13 +41,14 @@ The following tools expose private app state or modify the running app and shoul
 - `ism_key_press`
 - `ism_type_text`
 - `ism_element_peer_default_action`
+- `ism_set_element_property`
 - `ism_close`
 
 Stdio is intended for IDE-launched local MCP clients. HTTP is local-only: the broker binds to `127.0.0.1` and rejects non-loopback clients.
 
 ## Interaction Rules
 
-Pointer, keyboard, text, and default-action tools are routed through the selected app instance, run on the adapter dispatcher where UI state is needed, and return structured `ToolResult` outcomes.
+Pointer, keyboard, text, default-action, and property-editing tools are routed through the selected app instance, run on the adapter dispatcher where UI state is needed, and return structured `ToolResult` outcomes.
 
 Pointer coordinates are adapter-root-relative, not raw desktop, screenshot, or UI Automation screen coordinates.
 
@@ -70,13 +71,15 @@ Default actions use public control contracts only:
 
 Elements without those public action surfaces return structured `unsupported`.
 
+Property editing uses `ism_set_element_property`. It can set public settable properties on the selected UI element or on its direct DataContext object. Use `targetObject: "element"` for the UI element and `targetObject: "dataContext"` for the direct DataContext. Values are supplied as JSON and converted only to supported simple types: strings, booleans, numbers, enums, `DateTime`, `DateTimeOffset`, `Guid`, and framework types with validated string conversion such as colors or brushes where the adapter framework exposes a public converter or `Parse` method. It does not recursively mutate arbitrary object graphs.
+
 ## Adapter Capabilities
 
 The adapters share the same contract shape, but platform support is intentionally honest.
 
-- Uno: UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, Windows screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed `ButtonBase` default action invocation.
-- Avalonia: UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, screenshot capture for measured controls, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed default action invocation through `ICommandSource`.
-- WinForms: UI dispatch, app info/close, bounded control tree, element metadata, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, default action invocation for `IButtonControl`.
+- Uno: UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, Windows screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed `ButtonBase` default action invocation, and public property editing for elements and direct DataContext objects.
+- Avalonia: UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, screenshot capture for measured controls, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed default action invocation through `ICommandSource`, and public property editing for elements and direct DataContext objects.
+- WinForms: UI dispatch, app info/close, bounded control tree, element metadata, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, default action invocation for `IButtonControl`, and public property editing for controls and Tag-based DataContext objects.
 
 ## Tool Surface
 
@@ -94,6 +97,7 @@ The adapters share the same contract shape, but platform support is intentionall
 - `ism_key_press`: Request a key press. Protected.
 - `ism_type_text`: Request text input. Protected.
 - `ism_element_peer_default_action`: Invoke a public default action where the adapter supports it. Protected.
+- `ism_set_element_property`: Set a public settable property on an element or its direct DataContext object. Protected.
 - `ism_close`: Request a graceful close. Protected.
 - `ism_start_trace`: Start recording bounded events for a selected instance.
 - `ism_stop_trace`: Stop a trace and return a summary.
@@ -107,6 +111,6 @@ Normal assertion failures return successful tool calls with an `AssertionResult`
 
 `ism_visualtree_snapshot` returns a `ToolResult` whose `data` is a `UiTreeSnapshot`. It contains the root `UiElementNode`, adapter-generated `elementIdentifier` paths, basic metadata such as `type`, `name`, `automationId`, `text`, `role`, visibility and enabled state, plus `nodeCount` and `truncated`.
 
-Element metadata uses the same safe fields without child nodes. DataContext metadata includes the DataContext type name and public primitive/string-like properties only. It does not recursively walk arbitrary object graphs, and sensitive property names such as password, secret, token, or key are redacted.
+Element metadata uses the same safe fields without child nodes. DataContext metadata includes the DataContext type name and public primitive/string-like properties only. It does not recursively walk arbitrary object graphs, and sensitive property names such as password, secret, token, or key are redacted. Property-editing results include the element identifier, edited target object, property name, target type, property type, and formatted previous/new values where readable.
 
 Trace summaries contain a trace ID, timestamps, bounded event entries, and a truncation flag.

@@ -41,6 +41,7 @@ internal static class ToolRoutingFixture
         IAccessibilityTreeProvider? accessibilityTreeProvider = null,
         IPointerInputSimulator? inputSimulator = null,
         IAutomationPeerInvoker? automationPeerInvoker = null,
+        IElementPropertyEditor? propertyEditor = null,
         IAppProvider? appProvider = null,
         IUiOperationQueue? uiQueue = null,
         IEventLogProvider? eventLog = null,
@@ -51,6 +52,7 @@ internal static class ToolRoutingFixture
             accessibilityTreeProvider ?? new UnsupportedAccessibilityProvider(),
             inputSimulator ?? new NoopInputSimulator(),
             automationPeerInvoker ?? new UnsupportedAutomationPeerInvoker(),
+            propertyEditor ?? new UnsupportedElementPropertyEditor(),
             appProvider ?? new NoopAppProvider(),
             uiQueue ?? new UiOperationQueue(),
             eventLog ?? new BoundedEventLog(),
@@ -160,6 +162,24 @@ internal static class ToolRoutingFixture
         {
             cancellationToken.ThrowIfCancellationRequested();
             _ = elementIdentifier;
+            return Task.FromResult(ToolResult.Fail("unsupported", "unsupported"));
+        }
+    }
+
+    private sealed class UnsupportedElementPropertyEditor : IElementPropertyEditor
+    {
+        public Task<ToolResult> SetElementPropertyAsync(
+            string elementIdentifier,
+            string targetObject,
+            string propertyName,
+            System.Text.Json.JsonElement value,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = elementIdentifier;
+            _ = targetObject;
+            _ = propertyName;
+            _ = value;
             return Task.FromResult(ToolResult.Fail("unsupported", "unsupported"));
         }
     }

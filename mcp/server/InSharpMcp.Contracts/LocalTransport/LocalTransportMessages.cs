@@ -20,6 +20,7 @@ public static class LocalAppOperation
     public const string KeyPress = "key_press";
     public const string TypeText = "type_text";
     public const string ElementPeerDefaultAction = "element_peer_default_action";
+    public const string SetElementProperty = "set_element_property";
     public const string Close = "close";
 }
 
@@ -52,7 +53,10 @@ public sealed record LocalAppRequest(
     double? Y = null,
     string? Key = null,
     string[]? Modifiers = null,
-    string? Text = null);
+    string? Text = null,
+    string? TargetObject = null,
+    string? PropertyName = null,
+    JsonElement? PropertyValue = null);
 
 public sealed record LocalAppToolResponse(
     bool Success,

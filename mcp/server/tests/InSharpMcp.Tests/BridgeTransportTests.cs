@@ -31,6 +31,7 @@ public sealed class BridgeTransportTests
         });
         using var host = builder.Build();
         await host.StartAsync();
+        var propertyEditor = new TestElementPropertyEditor();
 
         await using var bridge = new InSharpMcpBridge(
             new TestTreeInspector(),
@@ -43,7 +44,8 @@ public sealed class BridgeTransportTests
             {
                 BrokerPipeName = pipeName,
                 RequestTimeout = TimeSpan.FromSeconds(5),
-            });
+            },
+            propertyEditor);
 
         await bridge.StartAsync(new AppBridgeRegistration(
             "insharpmcp.test",
@@ -77,6 +79,20 @@ public sealed class BridgeTransportTests
         Assert.True(metadataResult.Success);
         var metadata = Assert.IsType<ElementMetadata>(metadataResult.Data);
         Assert.Equal("0/0", metadata.ElementIdentifier);
+
+        using var propertyValue = JsonDocument.Parse("\"Changed\"");
+        var propertyResult = await InSharpMcpTools.SetElementProperty(
+            host.Services.GetRequiredService<AppInstanceRouter>(),
+            "0/0",
+            "Text",
+            propertyValue.RootElement,
+            target: new AppTargetSelector(InstanceId: "bridge-test"));
+
+        Assert.True(propertyResult.Success);
+        Assert.Equal("0/0", propertyEditor.ElementIdentifier);
+        Assert.Equal("Text", propertyEditor.PropertyName);
+        Assert.Equal(JsonValueKind.String, propertyEditor.ValueKind);
+        Assert.IsType<ElementPropertySetResult>(propertyResult.Data);
 
         await host.StopAsync();
     }
@@ -266,6 +282,38 @@ public sealed class BridgeTransportTests
             cancellationToken.ThrowIfCancellationRequested();
             _ = elementIdentifier;
             return Task.FromResult(ToolResult.Ok("Invoked."));
+        }
+    }
+
+    private sealed class TestElementPropertyEditor : IElementPropertyEditor
+    {
+        public string? ElementIdentifier { get; private set; }
+
+        public string? PropertyName { get; private set; }
+
+        public JsonValueKind ValueKind { get; private set; }
+
+        public Task<ToolResult> SetElementPropertyAsync(
+            string elementIdentifier,
+            string targetObject,
+            string propertyName,
+            JsonElement value,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ElementIdentifier = elementIdentifier;
+            PropertyName = propertyName;
+            ValueKind = value.ValueKind;
+            return Task.FromResult(ToolResult.Ok(
+                "Element property set.",
+                new ElementPropertySetResult(
+                    elementIdentifier,
+                    targetObject,
+                    propertyName,
+                    "TestTarget",
+                    "System.String",
+                    "Before",
+                    value.GetString())));
         }
     }
 

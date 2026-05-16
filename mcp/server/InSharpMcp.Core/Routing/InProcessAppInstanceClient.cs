@@ -12,6 +12,7 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
     private readonly IAccessibilityTreeProvider _accessibilityTreeProvider;
     private readonly IPointerInputSimulator _inputSimulator;
     private readonly IAutomationPeerInvoker _automationPeerInvoker;
+    private readonly IElementPropertyEditor _propertyEditor;
     private readonly IAppProvider _appProvider;
     private readonly IUiOperationQueue _uiQueue;
 
@@ -21,6 +22,7 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
         IAccessibilityTreeProvider accessibilityTreeProvider,
         IPointerInputSimulator inputSimulator,
         IAutomationPeerInvoker automationPeerInvoker,
+        IElementPropertyEditor propertyEditor,
         IAppProvider appProvider,
         IUiOperationQueue uiQueue,
         IEventLogProvider eventLog,
@@ -31,6 +33,7 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
         _accessibilityTreeProvider = accessibilityTreeProvider;
         _inputSimulator = inputSimulator;
         _automationPeerInvoker = automationPeerInvoker;
+        _propertyEditor = propertyEditor;
         _appProvider = appProvider;
         _uiQueue = uiQueue;
         EventLog = eventLog;
@@ -126,6 +129,18 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
         RunUiAsync(
             LocalAppOperation.ElementPeerDefaultAction,
             token => _automationPeerInvoker.InvokeDefaultActionAsync(elementIdentifier, token),
+            new ToolLimits(),
+            cancellationToken);
+
+    public Task<ToolResult> SetElementPropertyAsync(
+        string elementIdentifier,
+        string targetObject,
+        string propertyName,
+        System.Text.Json.JsonElement value,
+        CancellationToken cancellationToken) =>
+        RunUiAsync(
+            LocalAppOperation.SetElementProperty,
+            token => _propertyEditor.SetElementPropertyAsync(elementIdentifier, targetObject, propertyName, value, token),
             new ToolLimits(),
             cancellationToken);
 

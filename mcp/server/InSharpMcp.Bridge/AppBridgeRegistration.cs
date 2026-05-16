@@ -22,6 +22,7 @@ public static class AppBridgeCapabilities
         "accessibility",
         "input",
         "default-action",
+        "property-editing",
         "close",
     };
 }

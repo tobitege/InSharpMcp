@@ -24,6 +24,8 @@ public static class InSharpMcpWinFormsServiceCollectionExtensions
             new WinFormsPointerInputSimulator(form, provider.GetRequiredService<IUiDispatcher>()));
         services.AddSingleton<IAutomationPeerInvoker>(provider =>
             new WinFormsAutomationPeerInvoker(form, provider.GetRequiredService<IUiDispatcher>()));
+        services.AddSingleton<IElementPropertyEditor>(provider =>
+            new WinFormsElementPropertyEditor(form, provider.GetRequiredService<IUiDispatcher>()));
         services.AddSingleton<IAccessibilityTreeProvider, WinFormsAccessibilityTreeProvider>();
         return services;
     }
