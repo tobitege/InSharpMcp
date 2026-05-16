@@ -13,13 +13,18 @@ namespace InSharpMcp.Adapters.Uno;
 public sealed class UnoScreenshotProvider : IScreenshotProvider
 {
     private readonly UIElement _root;
+    private readonly IUiDispatcher _dispatcher;
 
-    public UnoScreenshotProvider(UIElement root)
+    public UnoScreenshotProvider(UIElement root, IUiDispatcher dispatcher)
     {
         _root = root;
+        _dispatcher = dispatcher;
     }
 
-    public async Task<ScreenshotResult> CaptureScreenshotAsync(CancellationToken cancellationToken)
+    public Task<ScreenshotResult> CaptureScreenshotAsync(CancellationToken cancellationToken) =>
+        _dispatcher.RunAsync(CaptureOnUiThreadAsync, cancellationToken);
+
+    private async Task<ScreenshotResult> CaptureOnUiThreadAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 #if WINDOWS

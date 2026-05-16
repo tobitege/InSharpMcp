@@ -52,11 +52,14 @@ This repository currently contains the broker executable, reusable core broker l
 
 ## Current Status
 
-Release builds create one base NuGet package named `InSharpMcp`, separate framework adapter packages, and a Windows installer for the broker executable.
+Release builds create these NuGet packages:
 
-The verified implementation includes the callable `InSharpMcp.Broker` executable, the reusable `InSharpMcp.Core` broker library, the app-side `InSharpMcp.Bridge`, `InSharpMcp.Contracts`, `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, and `InSharpMcp.Adapters.WinForms`. The repository currently pins Uno Platform through `Uno.Sdk/6.5.33`. It pins Avalonia to `11.3.9`; the Avalonia adapter has also been compile-checked against Avalonia `12.0.3`, so the current implementation does not require separate v11 and v12 adapter source versions.
+- `InSharpMcp` `1.0.0`: `net8.0` base package containing `InSharpMcp.Contracts`, `InSharpMcp.Core`, and `InSharpMcp.Bridge`.
+- `InSharpMcp.Adapters.Uno` `1.0.0`: Uno Platform adapter using `Uno.Sdk/6.5.33`, targeting `net9.0-windows10.0.19041` and `net9.0-desktop`.
+- `InSharpMcp.Adapters.Avalonia` `1.0.0`: Avalonia adapter targeting `net8.0`, with `Avalonia` and `Avalonia.Desktop` pinned to `12.0.3`.
+- `InSharpMcp.Adapters.WinForms` `1.0.0`: WinForms adapter targeting `net8.0-windows`.
 
-Pointer, keyboard, text input, and default actions are implemented where the adapters have validated public platform paths. Remaining `unsupported` results are specific backend or element-shape limits.
+`InSharpMcp.Broker` is distributed separately as the MCP broker executable through the Windows installer.
 
 The repository includes xUnit test projects for the broker, shared adapter contracts, and framework adapters.
 
@@ -68,18 +71,19 @@ The server code lives under `mcp/server`.
 |------|---------|
 | `mcp/server/InSharpMcp.Contracts` | Shared result models, limit models, selectors, screenshots, traces, assertions, and adapter interfaces. |
 | `mcp/server/InSharpMcp.Core` | Reusable MCP core library: routing, registry, security, limits, event log, trace store, selectors, assertions, transports, and `ism_` tools. |
-| `mcp/server/InSharpMcp.Broker` | Command-line MCP broker executable for IDE/client MCP configuration. |
+| `mcp/server/InSharpMcp.Broker` | Main MCP broker process used by IDEs, MCP clients, and other third-party integrations. |
 | `mcp/server/InSharpMcp.Bridge` | App-side local bridge that registers a running app instance with the broker and carries UI operations back to the live adapter. |
-| `mcp/server/InSharpMcp.Adapters.Uno` | Uno/WinUI adapter for dispatcher, visual tree, metadata, DataContext, screenshots where supported, accessibility delegation, Windows input, and command-backed default action invocation. |
-| `mcp/server/InSharpMcp.Adapters.Avalonia` | Avalonia adapter for dispatcher, visual tree, metadata, DataContext, screenshots for measured controls, accessibility delegation, Windows input, and command-backed default action invocation. |
-| `mcp/server/InSharpMcp.Adapters.WinForms` | WinForms adapter for dispatcher, control tree, metadata, Tag-based DataContext, screenshots, accessibility delegation, Windows input, and button default action invocation. |
+| `mcp/server/InSharpMcp.Adapters.Uno` | Uno/WinUI adapter for dispatcher, visual tree, metadata, DataContext, screenshots where supported, inspection-tree accessibility metadata, Windows input, and command-backed default action invocation. |
+| `mcp/server/InSharpMcp.Adapters.Avalonia` | Avalonia adapter for dispatcher, visual tree, metadata, DataContext, screenshots for measured controls, inspection-tree accessibility metadata, Windows input, and command-backed default action invocation. |
+| `mcp/server/InSharpMcp.Adapters.WinForms` | WinForms adapter for dispatcher, control tree, metadata, Tag-based DataContext, screenshots, inspection-tree accessibility metadata, Windows input, and button default action invocation. |
+| `mcp/server/SharedSource` | Source files compiled into multiple adapter assemblies without introducing another project or NuGet package. |
 | `mcp/server/tests` | Core tests, shared adapter contract tests, and framework adapter tests. |
 | `demos` | Uno, Avalonia, and WinForms demo apps for manual adapter validation. |
 | `plans` | Design plan, implementation notes, and verification record. |
 
 ## Requirements
 
-Use a current .NET SDK that can build `net8.0`, `net8.0-windows`, and the Uno adapter target frameworks. This repository was verified on Windows. The machine used for verification has a .NET 11 preview SDK as the default SDK, so build output may print `NETSDK1057`; that message is informational for this repo because the projects target the configured TFMs.
+Use a current .NET SDK that can build `net8.0`, `net8.0-windows`, and the Uno adapter target frameworks. This repository was verified on Windows.
 
 The WinForms adapter and WinForms demo require Windows. The Uno adapter targets `net9.0-windows10.0.19041` and `net9.0-desktop`. The Avalonia adapter targets `net8.0`.
 
@@ -110,7 +114,7 @@ The demos are intentionally small and stable. They expose menus, buttons, inputs
 
 ## How InSharpMcp Works
 
-An MCP client talks to `InSharpMcp.Broker`. The broker owns the MCP tool surface, app registry, target selection, limit clamping, event logging, and local routing. It stays UI-framework-neutral.
+An MCP client talks to `InSharpMcp.Broker`, the main MCP process used by IDEs, MCP clients, and other third-party integrations. The broker owns the MCP tool surface, app registry, target selection, limit clamping, event logging, and local routing. It stays UI-framework-neutral.
 
 A running app does not expose MCP directly. It references `InSharpMcp.Bridge` plus exactly one framework adapter package. The Bridge registers an `AppInstanceDescriptor` with the broker over a local named pipe and carries broker requests back to the live app process.
 
@@ -120,7 +124,7 @@ When exactly one compatible app instance is registered, tools can run without an
 
 ## Install MCP in IDE
 
-IDE MCP clients should launch `InSharpMcp.Broker` over stdio. The app under test must reference `InSharpMcp.Bridge` and be running so it can register itself with the broker.
+IDE MCP clients should launch `InSharpMcp.Broker` over `stdio`. The app under test must reference `InSharpMcp.Bridge` and be running so it can register itself with the broker.
 
 For live usage, point the IDE directly at `InSharpMcp.Broker.exe`. Use `<path>` for the folder that contains the broker executable, such as a local build output, release unpack folder, or installed tool location.
 
@@ -262,7 +266,7 @@ HTTP always binds to `127.0.0.1` and maps the MCP endpoint at `/mcp` by default.
 
 App registration is normal dependency injection. Add the adapter for your framework, add `InSharpMcp.Bridge`, and start the bridge with an `AppBridgeRegistration`. Production apps should usually guard `StartAsync` behind an explicit opt-in such as `ISM_ENABLED`. The demo projects under `demos/` are the best starting references because each one wires the MCP Bridge into a real host app.
 
-The exact root type depends on the adapter. Today each adapter attaches one app instance to one UI root: WinForms uses the main `Form`, while Avalonia and Uno use the main `Window`. That root is what the adapter inspects, screenshots, and uses for coordinate translation. For a typical single-window app, the main form/window is the app instance. Multi-window apps can register the window they want MCP clients to operate against, or expose separate app instance registrations if they need separate controllable surfaces.
+The exact root type depends on the adapter. Today each adapter attaches one app instance to one UI root: WinForms uses the main `Form`, while Avalonia and Uno use the main `Window.Content` element as the inspectable/screenshot root and keep the main `Window` for app close and coordinate translation. For a typical single-window app, the main form/window content is the app instance surface. Multi-window apps can register the window they want MCP clients to operate against, or expose separate app instance registrations if they need separate controllable surfaces.
 
 A WinForms host can wire its main form like this:
 
@@ -311,9 +315,9 @@ The adapters share the same contract shape, but platform support is intentionall
 
 | Adapter | Implemented |
 |---------|-------------|
-| Uno | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, Windows screenshot capture, accessibility tree delegation, Windows pointer/key/text input through native input APIs, command-backed `ButtonBase` default action invocation. |
-| Avalonia | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, screenshot capture for measured controls, accessibility tree delegation, Windows pointer/key/text input through native input APIs, command-backed default action invocation through `ICommandSource`. |
-| WinForms | UI dispatch, app info/close, bounded control tree, element metadata, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, accessibility tree delegation, Windows pointer/key/text input through native input APIs, default action invocation for `IButtonControl`. |
+| Uno | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, Windows screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed `ButtonBase` default action invocation. |
+| Avalonia | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, screenshot capture for measured controls, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed default action invocation through `ICommandSource`. |
+| WinForms | UI dispatch, app info/close, bounded control tree, element metadata, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, default action invocation for `IButtonControl`. |
 
 Unsupported results are normal tool outcomes. They let MCP clients distinguish "this platform path has no validated adapter implementation" from a failure in the app.
 
@@ -411,7 +415,63 @@ Element selectors are structured JSON objects. They are not CSS, XPath, or a cus
 
 The supported selector fields are `name`, `automationId`, `type`, `text`, `role`, `index`, `path`, and an adapter-specific `adapter` object. Results are deterministic, bounded, and returned in tree order.
 
-Element identifiers use adapter-generated tree paths such as `0`, `0/0`, or `0/1/2`. Use `ism_visualtree_snapshot` or `ism_query_elements` to discover identifiers, then pass the identifier to metadata, DataContext, or default-action tools.
+`automationId` comes from the UI framework's automation metadata. Avalonia reads `AutomationProperties.AutomationId`, Uno/WinUI reads `AutomationProperties.AutomationId`, and WinForms maps this field from `AccessibleName`. If an app does not set an automation ID, the value is `null`; use `name`, `text`, `type`, or a discovered `elementIdentifier` instead.
+
+To inspect a tree-like control, an agent should usually start with `ism_visualtree_snapshot`. The initial result is a `ToolResult` whose `data` is a `UiTreeSnapshot`: it contains the root `UiElementNode`, adapter-generated `elementIdentifier` paths, basic metadata such as `type`, `name`, `automationId`, `text`, `role`, visibility and enabled state, plus `nodeCount` and `truncated` so the caller can tell whether limits cut the tree short.
+
+Example initial result:
+
+```json
+{
+  "success": true,
+  "message": "Visual tree snapshot returned.",
+  "data": {
+    "root": {
+      "elementIdentifier": "0",
+      "type": "Window",
+      "name": "MainWindow",
+      "automationId": "mainWindow",
+      "text": null,
+      "role": "Window",
+      "isVisible": true,
+      "isEnabled": true,
+      "children": [
+        {
+          "elementIdentifier": "0/1",
+          "type": "TreeView",
+          "name": "Navigation",
+          "automationId": "navigationTree",
+          "text": null,
+          "role": "TreeView",
+          "isVisible": true,
+          "isEnabled": true,
+          "children": [
+            {
+              "elementIdentifier": "0/1/0",
+              "type": "TreeViewItem",
+              "name": "Orders",
+              "automationId": "ordersNode",
+              "text": "Orders",
+              "role": "TreeViewItem",
+              "isVisible": true,
+              "isEnabled": true,
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    "nodeCount": 3,
+    "truncated": false
+  }
+}
+```
+
+If the agent already knows what it is looking for, it can use `ism_query_elements` directly with fields such as `type`, `name`, or `automationId`. For a first overview, `ism_visualtree_snapshot` is the safer starting point; then use the returned `elementIdentifier` with `ism_get_element_metadata`, `ism_get_element_datacontext`, or `ism_element_peer_default_action`. Collapsed or virtualized items appear only when the UI framework has realized them in the current tree.
+
+Element identifiers use adapter-generated tree paths such as `0`, `0/0`, or `0/1/2`. The root is always `0`; each following segment is a zero-based child index. For example, `0/1/2` means root element, second child, then third child. Use `ism_visualtree_snapshot` or `ism_query_elements` to discover identifiers, then pass the identifier to metadata, DataContext, or default-action tools.
+
+Element identifiers are handles for the current UI tree shape, not stable application IDs. If the UI tree changes because controls are added, removed, expanded, collapsed, or virtualized, a previously discovered path can point to a different element or stop resolving. Prefer `automationId`, `name`, `text`, or `type` for stable queries where the app exposes them.
 
 ## Tool Manual
 
@@ -427,7 +487,7 @@ The tool surface uses the `ism_` prefix.
 | `ism_get_screenshot` | Capture a PNG screenshot where the adapter supports it. This is protected. |
 | `ism_query_elements` | Find elements with a structured selector. |
 | `ism_wait_for_element` | Poll for a matching element until a bounded timeout. |
-| `ism_get_accessibility_tree` | Return the adapter accessibility tree where available. |
+| `ism_get_accessibility_tree` | Return the selected adapter's inspectable tree with accessibility-related metadata where available. This is not a native platform accessibility-provider tree. |
 | `ism_get_event_log` | Read recent bounded, redacted tool and adapter events. |
 | `ism_pointer_click` | Request a pointer click using adapter-root/client coordinates, not raw screen pixels. Convert UIA/screenshot points first and validate the resulting state. This may return `unsupported`. |
 | `ism_key_press` | Request a key press. This is protected and may return `unsupported`. |

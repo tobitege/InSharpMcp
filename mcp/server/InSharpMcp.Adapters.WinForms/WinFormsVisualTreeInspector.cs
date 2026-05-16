@@ -35,8 +35,7 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
             token =>
             {
                 token.ThrowIfCancellationRequested();
-                var budget = new NodeVisitBudget(limits.MaxNodes);
-                var match = Find(_root, elementIdentifier, "0", budget, token);
+                var match = Find(_root, elementIdentifier, token);
                 if (match is null)
                 {
                     return ToolResult.Fail("Element was not found.", "not_found");
@@ -54,8 +53,7 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
             token =>
             {
                 token.ThrowIfCancellationRequested();
-                var budget = new NodeVisitBudget(limits.MaxNodes);
-                var match = Find(_root, elementIdentifier, "0", budget, token);
+                var match = Find(_root, elementIdentifier, token);
                 if (match is null)
                 {
                     return ToolResult.Fail("Element was not found.", "not_found");
@@ -75,32 +73,28 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
     internal static (Control Element, string Identifier)? Find(
         Control element,
         string elementIdentifier,
-        string currentIdentifier,
-        NodeVisitBudget budget,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!budget.TryVisit())
+        if (!TryParseIdentifier(elementIdentifier, out var path))
         {
             return null;
         }
 
-        if (string.Equals(currentIdentifier, elementIdentifier, StringComparison.Ordinal))
+        var current = element;
+        for (var pathIndex = 1; pathIndex < path.Length; pathIndex++)
         {
-            return (element, currentIdentifier);
-        }
-
-        for (var index = 0; index < element.Controls.Count; index++)
-        {
-            var childIdentifier = $"{currentIdentifier}/{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
-            var found = Find(element.Controls[index], elementIdentifier, childIdentifier, budget, cancellationToken);
-            if (found is not null)
+            cancellationToken.ThrowIfCancellationRequested();
+            var childIndex = path[pathIndex];
+            if (childIndex >= current.Controls.Count)
             {
-                return found;
+                return null;
             }
+
+            current = current.Controls[childIndex];
         }
 
-        return null;
+        return (current, elementIdentifier);
     }
 
     private static UiElementNode? CopyBounded(
@@ -196,5 +190,34 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
         }
 
         return string.IsNullOrWhiteSpace(second) ? null : second;
+    }
+
+    private static bool TryParseIdentifier(string elementIdentifier, out int[] path)
+    {
+        path = [];
+        var segments = elementIdentifier.Split('/');
+        if (segments.Length == 0 || segments[0] != "0")
+        {
+            return false;
+        }
+
+        path = new int[segments.Length];
+        for (var index = 0; index < segments.Length; index++)
+        {
+            if (!int.TryParse(
+                    segments[index],
+                    System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var pathSegment)
+                || pathSegment < 0)
+            {
+                path = [];
+                return false;
+            }
+
+            path[index] = pathSegment;
+        }
+
+        return true;
     }
 }

@@ -231,6 +231,7 @@ public sealed class InSharpMcpTools
     }
 
     [McpServerTool(Name = "ism_get_accessibility_tree")]
+    [Description("Return the selected adapter's inspectable UI tree with accessibility-related metadata where available. This is not a native platform accessibility-provider tree.")]
     public static Task<ToolResult> GetAccessibilityTree(
         AppInstanceRouter router,
         ToolLimitPolicyEvaluator limitPolicy,

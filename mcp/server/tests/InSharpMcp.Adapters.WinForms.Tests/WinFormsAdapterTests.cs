@@ -57,6 +57,64 @@ public sealed class WinFormsAdapterTests
         });
 
     [Fact]
+    public Task ElementLookup_UsesPathWithoutDefaultNodeBudget()
+        => RunStaAsync(async () =>
+        {
+            using var form = new Form { Name = "RootForm" };
+            var clicked = false;
+            for (var index = 0; index < 600; index++)
+            {
+                var button = new Button
+                {
+                    Name = $"Button{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                    Text = $"Button {index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                };
+
+                if (index == 599)
+                {
+                    button.Tag = new PathLookupDataContext("late");
+                    button.Click += (_, _) => clicked = true;
+                }
+
+                form.Controls.Add(button);
+            }
+
+            form.Show();
+            Application.DoEvents();
+            var dispatcher = new WinFormsUiDispatcher(form);
+            var inspector = new WinFormsVisualTreeInspector(form, dispatcher);
+            var invoker = new WinFormsAutomationPeerInvoker(form, dispatcher);
+            var snapshotResult = await inspector.GetVisualTreeSnapshotAsync(
+                new ToolLimits { MaxDepth = 2, MaxNodes = 700 },
+                CancellationToken.None);
+
+            Assert.True(snapshotResult.Success);
+
+            var metadataResult = await inspector.GetElementMetadataAsync(
+                "0/599",
+                new ToolLimits { MaxNodes = 1 },
+                CancellationToken.None);
+
+            Assert.True(metadataResult.Success);
+            var metadata = Assert.IsType<ElementMetadata>(metadataResult.Data);
+            Assert.Equal("Button599", metadata.Name);
+
+            var dataContextResult = await inspector.GetElementDataContextAsync(
+                "0/599",
+                new ToolLimits { MaxNodes = 1 },
+                CancellationToken.None);
+
+            Assert.True(dataContextResult.Success);
+            var dataContext = Assert.IsType<DataContextMetadata>(dataContextResult.Data);
+            Assert.EndsWith(nameof(PathLookupDataContext), dataContext.TypeName, StringComparison.Ordinal);
+
+            var invokeResult = await invoker.InvokeDefaultActionAsync("0/599", CancellationToken.None);
+
+            Assert.True(invokeResult.Success);
+            Assert.True(clicked);
+        });
+
+    [Fact]
     public Task PointerInputSimulator_TranslatesClientCoordinatesToScreenCoordinates() =>
         RunStaAsync(async () =>
         {
@@ -133,6 +191,8 @@ public sealed class WinFormsAdapterTests
         });
         return form;
     }
+
+    private sealed record PathLookupDataContext(string Value);
 
     private static Task RunStaAsync(Func<Task> action)
     {

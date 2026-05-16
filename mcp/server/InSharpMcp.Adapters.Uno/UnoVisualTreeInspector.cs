@@ -38,8 +38,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
             token =>
             {
                 token.ThrowIfCancellationRequested();
-                var budget = new NodeVisitBudget(limits.MaxNodes);
-                var match = Find(_root, elementIdentifier, "0", budget, token);
+                var match = Find(_root, elementIdentifier, token);
                 if (match is null)
                 {
                     return ToolResult.Fail("Element was not found.", "not_found");
@@ -57,8 +56,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
             token =>
             {
                 token.ThrowIfCancellationRequested();
-                var budget = new NodeVisitBudget(limits.MaxNodes);
-                var match = Find(_root, elementIdentifier, "0", budget, token);
+                var match = Find(_root, elementIdentifier, token);
                 if (match is null)
                 {
                     return ToolResult.Fail("Element was not found.", "not_found");
@@ -123,38 +121,29 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
     internal static (DependencyObject Element, string Identifier)? Find(
         DependencyObject element,
         string elementIdentifier,
-        string currentIdentifier,
-        NodeVisitBudget budget,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!budget.TryVisit())
+        if (!TryParseIdentifier(elementIdentifier, out var path))
         {
             return null;
         }
 
-        if (string.Equals(currentIdentifier, elementIdentifier, StringComparison.Ordinal))
+        var current = element;
+        for (var pathIndex = 1; pathIndex < path.Length; pathIndex++)
         {
-            return (element, currentIdentifier);
-        }
-
-        var childCount = VisualTreeHelper.GetChildrenCount(element);
-        for (var index = 0; index < childCount; index++)
-        {
-            var childIdentifier = $"{currentIdentifier}/{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
-            var found = Find(
-                VisualTreeHelper.GetChild(element, index),
-                elementIdentifier,
-                childIdentifier,
-                budget,
-                cancellationToken);
-            if (found is not null)
+            cancellationToken.ThrowIfCancellationRequested();
+            var childCount = VisualTreeHelper.GetChildrenCount(current);
+            var childIndex = path[pathIndex];
+            if (childIndex >= childCount)
             {
-                return found;
+                return null;
             }
+
+            current = VisualTreeHelper.GetChild(current, childIndex);
         }
 
-        return null;
+        return (current, elementIdentifier);
     }
 
     private static UiElementNode CreateNode(
@@ -183,10 +172,10 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
     {
         var frameworkElement = element as FrameworkElement;
         var control = element as Control;
-        var textBlock = element as TextBlock;
         var automationId = AutomationProperties.GetAutomationId(element);
+        var automationName = AutomationProperties.GetName(element);
         var name = frameworkElement?.Name;
-        var text = textBlock?.Text;
+        var text = GetText(element);
         if (text is { Length: > 0 } && text.Length > limits.MaxTextCharacters)
         {
             text = text[..limits.MaxTextCharacters];
@@ -195,12 +184,60 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
         return new ElementMetadata(
             identifier,
             element.GetType().Name,
-            string.IsNullOrWhiteSpace(name) ? null : name,
+            FirstNonWhiteSpace(name, automationName),
             string.IsNullOrWhiteSpace(automationId) ? null : automationId,
             text,
-            control is null ? null : "control",
+            control is null ? null : element.GetType().Name,
             frameworkElement?.Visibility == Visibility.Visible,
             control?.IsEnabled);
     }
 
+    private static string? GetText(DependencyObject element) =>
+        element switch
+        {
+            TextBlock textBlock => textBlock.Text,
+            TextBox textBox => textBox.Text,
+            ContentControl { Content: string text } => text,
+            ContentControl { Content: { } content } => content.ToString(),
+            _ => AutomationProperties.GetName(element),
+        };
+
+    private static string? FirstNonWhiteSpace(string? first, string? second)
+    {
+        if (!string.IsNullOrWhiteSpace(first))
+        {
+            return first;
+        }
+
+        return string.IsNullOrWhiteSpace(second) ? null : second;
+    }
+
+    private static bool TryParseIdentifier(string elementIdentifier, out int[] path)
+    {
+        path = [];
+        var segments = elementIdentifier.Split('/');
+        if (segments.Length == 0 || segments[0] != "0")
+        {
+            return false;
+        }
+
+        path = new int[segments.Length];
+        for (var index = 0; index < segments.Length; index++)
+        {
+            if (!int.TryParse(
+                    segments[index],
+                    System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var pathSegment)
+                || pathSegment < 0)
+            {
+                path = [];
+                return false;
+            }
+
+            path[index] = pathSegment;
+        }
+
+        return true;
+    }
 }

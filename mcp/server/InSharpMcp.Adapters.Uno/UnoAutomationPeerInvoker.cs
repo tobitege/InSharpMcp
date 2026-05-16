@@ -19,8 +19,7 @@ public sealed class UnoAutomationPeerInvoker : IAutomationPeerInvoker
             token =>
             {
                 token.ThrowIfCancellationRequested();
-                var budget = new NodeVisitBudget(new ToolLimits().MaxNodes);
-                var match = UnoVisualTreeInspector.Find(_root, elementIdentifier, "0", budget, token);
+                var match = UnoVisualTreeInspector.Find(_root, elementIdentifier, token);
                 if (match is null)
                 {
                     return ToolResult.Fail("Element was not found.", "not_found");

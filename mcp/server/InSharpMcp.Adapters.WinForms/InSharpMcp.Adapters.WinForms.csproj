@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\SharedSource\WindowsInput.cs" Link="WindowsInput.cs" />
     <ProjectReference Include="..\InSharpMcp.Contracts\InSharpMcp.Contracts.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   </ItemGroup>

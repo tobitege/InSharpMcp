@@ -21,8 +21,7 @@ public sealed class AvaloniaAutomationPeerInvoker : IAutomationPeerInvoker
             token =>
             {
                 token.ThrowIfCancellationRequested();
-                var budget = new NodeVisitBudget(new ToolLimits().MaxNodes);
-                var match = AvaloniaVisualTreeInspector.Find(_root, elementIdentifier, "0", budget, token);
+                var match = AvaloniaVisualTreeInspector.Find(_root, elementIdentifier, token);
                 if (match is null)
                 {
                     return ToolResult.Fail("Element was not found.", "not_found");

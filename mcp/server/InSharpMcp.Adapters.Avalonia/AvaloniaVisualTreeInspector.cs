@@ -39,8 +39,7 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
             token =>
             {
                 token.ThrowIfCancellationRequested();
-                var budget = new NodeVisitBudget(limits.MaxNodes);
-                var match = Find(_root, elementIdentifier, "0", budget, token);
+                var match = Find(_root, elementIdentifier, token);
                 if (match is null)
                 {
                     return ToolResult.Fail("Element was not found.", "not_found");
@@ -58,8 +57,7 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
             token =>
             {
                 token.ThrowIfCancellationRequested();
-                var budget = new NodeVisitBudget(limits.MaxNodes);
-                var match = Find(_root, elementIdentifier, "0", budget, token);
+                var match = Find(_root, elementIdentifier, token);
                 if (match is null)
                 {
                     return ToolResult.Fail("Element was not found.", "not_found");
@@ -123,33 +121,29 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
     internal static (Visual Element, string Identifier)? Find(
         Visual element,
         string elementIdentifier,
-        string currentIdentifier,
-        NodeVisitBudget budget,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!budget.TryVisit())
+        if (!TryParseIdentifier(elementIdentifier, out var path))
         {
             return null;
         }
 
-        if (string.Equals(currentIdentifier, elementIdentifier, StringComparison.Ordinal))
+        var current = element;
+        for (var pathIndex = 1; pathIndex < path.Length; pathIndex++)
         {
-            return (element, currentIdentifier);
-        }
-
-        var children = element.GetVisualChildren().OfType<Visual>().ToArray();
-        for (var index = 0; index < children.Length; index++)
-        {
-            var childIdentifier = $"{currentIdentifier}/{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
-            var found = Find(children[index], elementIdentifier, childIdentifier, budget, cancellationToken);
-            if (found is not null)
+            cancellationToken.ThrowIfCancellationRequested();
+            var children = current.GetVisualChildren().OfType<Visual>().ToArray();
+            var childIndex = path[pathIndex];
+            if (childIndex >= children.Length)
             {
-                return found;
+                return null;
             }
+
+            current = children[childIndex];
         }
 
-        return null;
+        return (current, elementIdentifier);
     }
 
     private static UiElementNode CreateNode(
@@ -214,5 +208,34 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
         }
 
         return string.IsNullOrWhiteSpace(second) ? null : second;
+    }
+
+    private static bool TryParseIdentifier(string elementIdentifier, out int[] path)
+    {
+        path = [];
+        var segments = elementIdentifier.Split('/');
+        if (segments.Length == 0 || segments[0] != "0")
+        {
+            return false;
+        }
+
+        path = new int[segments.Length];
+        for (var index = 0; index < segments.Length; index++)
+        {
+            if (!int.TryParse(
+                    segments[index],
+                    System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var pathSegment)
+                || pathSegment < 0)
+            {
+                path = [];
+                return false;
+            }
+
+            path[index] = pathSegment;
+        }
+
+        return true;
     }
 }

@@ -1,0 +1,112 @@
+# InSharpMcp
+
+InSharpMcp is a framework-independent MCP automation layer for .NET desktop applications.
+It gives an MCP client a bounded, structured way to inspect running app instances, query UI elements, capture supported screenshots, read safe metadata, collect recent events, start traces, run simple assertions, and invoke carefully gated interaction tools.
+
+The MCP client talks to `InSharpMcp.Broker`. A running desktop app does not expose MCP directly; it references `InSharpMcp.Bridge` plus exactly one framework adapter package. The Bridge registers the live app instance with the broker, and the broker routes tool calls to the selected instance.
+
+## Agent Essentials
+
+- Tool names use the `ism_` prefix.
+- Most tool results are structured. Check `success`, `message`, `errorCode`, and `data`; do not infer success from transport success alone.
+- `unsupported` is a normal outcome. It means the selected adapter or element shape has no validated implementation for that operation.
+- If exactly one compatible app instance is registered, tools can run without an explicit target. If multiple instances match, the broker returns `ambiguous_target` with candidates. If the selected instance has no active client connection, it returns `stale_instance`.
+- Prefer explicit targets when more than one app or window may be registered. Targets can use `instanceId`, `appId`, or `adapterKind`; `instanceId` is the safest.
+- Start UI exploration with `ism_visualtree_snapshot` unless you already know the selector. Use `ism_query_elements` for structured searches.
+- Element selectors are JSON objects, not CSS, XPath, or string selectors. Supported fields are `name`, `automationId`, `type`, `text`, `role`, `index`, `path`, and adapter-specific `adapter`.
+- Element identifiers are adapter-generated tree paths such as `0`, `0/0`, or `0/1/2`. The root is always `0`; each following segment is a zero-based child index.
+- Element identifiers are handles for the current UI tree shape, not stable application IDs. If the UI changes, a previously discovered path can point to a different element or stop resolving. Prefer `automationId`, `name`, `text`, or `type` for stable queries where available.
+- Collapsed or virtualized items appear only when the UI framework has realized them in the current tree.
+- `ism_get_accessibility_tree` returns the selected adapter's inspectable UI tree with accessibility-related metadata where available. It is not a native platform accessibility-provider tree.
+
+## Limits and Safety
+
+Inspection tools limit how much UI data they read and return. Defaults are:
+
+- `MaxDepth = 20`
+- `MaxNodes = 500`
+- `MaxTextCharacters = 64000`
+- `Timeout = 5 seconds`
+- `QueueTimeout = 2 seconds`
+
+The server clamps requested values to policy. Depth is clamped between 1 and 50, node count between 1 and 2000, and text characters between 1024 and 256000. Invalid values fall back to defaults.
+
+Only inspection limits are client-configurable. Clients cannot change timeout, queue timeout, auth, CORS, host binding, or transport security through limit configuration.
+
+The following tools expose private app state or modify the running app and should be treated as approval-gated actions:
+
+- `ism_get_screenshot`
+- `ism_get_element_datacontext`
+- `ism_pointer_click`
+- `ism_key_press`
+- `ism_type_text`
+- `ism_element_peer_default_action`
+- `ism_close`
+
+Stdio is intended for IDE-launched local MCP clients. HTTP is local-only: the broker binds to `127.0.0.1` and rejects non-loopback clients.
+
+## Interaction Rules
+
+Pointer, keyboard, text, and default-action tools are routed through the selected app instance, run on the adapter dispatcher where UI state is needed, and return structured `ToolResult` outcomes.
+
+Pointer coordinates are adapter-root-relative, not raw desktop, screenshot, or UI Automation screen coordinates.
+
+- WinForms translates adapter-root coordinates with `Control.PointToScreen`.
+- Avalonia translates adapter-root coordinates with Avalonia `PointToScreen`.
+- Uno translates through the Windows target's native HWND when available.
+- Uno Desktop/Skia pointer clicks remain `unsupported` until a validated backend-specific screen-coordinate path exists.
+
+When starting from visual evidence such as a screenshot or UI Automation `BoundingRectangle`, first convert the target screen point into the adapter root's client coordinate space. For WinForms, use the actual form handle with Win32 `ScreenToClient`; do not pass UIA screen coordinates directly, and do not rely on manual DPI division.
+
+A successful `ism_pointer_click`, `ism_key_press`, or `ism_type_text` only means the adapter sent input. Validate the intended effect with state inspection, a screenshot, an event, or an assertion tool.
+
+Key presses accept a single alphanumeric character, `F1` through `F12`, or one of `enter`, `escape`, `tab`, `backspace`, `delete`, `space`, `arrowup`, `arrowdown`, `arrowleft`, `arrowright`, `home`, `end`, `pageup`, and `pagedown`. Modifiers are `alt`, `control`/`ctrl`, `shift`, and `meta`/`win`. Text input is capped by the interaction validator.
+
+Default actions use public control contracts only:
+
+- Uno invokes `ButtonBase.Command`.
+- Avalonia invokes `ICommandSource.Command`.
+- WinForms invokes `IButtonControl.PerformClick()`.
+
+Elements without those public action surfaces return structured `unsupported`.
+
+## Adapter Capabilities
+
+The adapters share the same contract shape, but platform support is intentionally honest.
+
+- Uno: UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, Windows screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed `ButtonBase` default action invocation.
+- Avalonia: UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, screenshot capture for measured controls, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed default action invocation through `ICommandSource`.
+- WinForms: UI dispatch, app info/close, bounded control tree, element metadata, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, default action invocation for `IButtonControl`.
+
+## Tool Surface
+
+- `ism_list_instances`: List registered app instances and their capabilities.
+- `ism_get_runtime_info`: Read PID, OS, platform target, app name, and app version for the selected instance.
+- `ism_visualtree_snapshot`: Get a bounded visual or control tree snapshot.
+- `ism_get_element_metadata`: Read safe metadata for one element identifier.
+- `ism_get_element_datacontext`: Read bounded, non-recursive DataContext metadata. Protected.
+- `ism_get_screenshot`: Capture a PNG screenshot where the adapter supports it. Protected.
+- `ism_query_elements`: Find elements with a structured selector.
+- `ism_wait_for_element`: Poll for a matching element until a bounded timeout.
+- `ism_get_accessibility_tree`: Return the selected adapter's inspectable tree with accessibility-related metadata where available.
+- `ism_get_event_log`: Read recent bounded, redacted tool and adapter events.
+- `ism_pointer_click`: Request a pointer click using adapter-root/client coordinates. Protected.
+- `ism_key_press`: Request a key press. Protected.
+- `ism_type_text`: Request text input. Protected.
+- `ism_element_peer_default_action`: Invoke a public default action where the adapter supports it. Protected.
+- `ism_close`: Request a graceful close. Protected.
+- `ism_start_trace`: Start recording bounded events for a selected instance.
+- `ism_stop_trace`: Stop a trace and return a summary.
+- `ism_assert_element_exists`: Return a structured pass/fail result for element existence.
+- `ism_assert_element_text`: Return a structured pass/fail result for matching element text.
+- `ism_assert_element_enabled`: Return a structured pass/fail result for enabled state.
+
+Normal assertion failures return successful tool calls with an `AssertionResult` whose `Passed` value is `false`. They do not throw as tool errors.
+
+## Data Shapes
+
+`ism_visualtree_snapshot` returns a `ToolResult` whose `data` is a `UiTreeSnapshot`. It contains the root `UiElementNode`, adapter-generated `elementIdentifier` paths, basic metadata such as `type`, `name`, `automationId`, `text`, `role`, visibility and enabled state, plus `nodeCount` and `truncated`.
+
+Element metadata uses the same safe fields without child nodes. DataContext metadata includes the DataContext type name and public primitive/string-like properties only. It does not recursively walk arbitrary object graphs, and sensitive property names such as password, secret, token, or key are redacted.
+
+Trace summaries contain a trace ID, timestamps, bounded event entries, and a truncation flag.

@@ -41,7 +41,62 @@ public sealed class AvaloniaAdapterTests
     }
 
     [Fact]
-    public async Task AccessibilityTreeProvider_DelegatesToTreeInspector()
+    public async Task ElementLookup_UsesPathWithoutDefaultNodeBudget()
+    {
+        var root = new StackPanel();
+        var command = new RecordingCommand();
+        for (var index = 0; index < 600; index++)
+        {
+            var button = new Button
+            {
+                Name = $"Button{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                Content = $"Button {index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+            };
+
+            if (index == 599)
+            {
+                button.DataContext = new PathLookupDataContext("late");
+                button.Command = command;
+                button.CommandParameter = "payload";
+            }
+
+            root.Children.Add(button);
+        }
+
+        var inspector = new AvaloniaVisualTreeInspector(root, new ImmediateDispatcher());
+        var invoker = new AvaloniaAutomationPeerInvoker(root, new ImmediateDispatcher());
+        var snapshotResult = await inspector.GetVisualTreeSnapshotAsync(
+            new ToolLimits { MaxDepth = 2, MaxNodes = 700 },
+            CancellationToken.None);
+
+        Assert.True(snapshotResult.Success);
+
+        var metadataResult = await inspector.GetElementMetadataAsync(
+            "0/599",
+            new ToolLimits { MaxNodes = 1 },
+            CancellationToken.None);
+
+        Assert.True(metadataResult.Success);
+        var metadata = Assert.IsType<ElementMetadata>(metadataResult.Data);
+        Assert.Equal("Button599", metadata.Name);
+
+        var dataContextResult = await inspector.GetElementDataContextAsync(
+            "0/599",
+            new ToolLimits { MaxNodes = 1 },
+            CancellationToken.None);
+
+        Assert.True(dataContextResult.Success);
+        var dataContext = Assert.IsType<DataContextMetadata>(dataContextResult.Data);
+        Assert.EndsWith(nameof(PathLookupDataContext), dataContext.TypeName, StringComparison.Ordinal);
+
+        var invokeResult = await invoker.InvokeDefaultActionAsync("0/599", CancellationToken.None);
+
+        Assert.True(invokeResult.Success);
+        Assert.Equal("payload", command.Parameter);
+    }
+
+    [Fact]
+    public async Task AccessibilityTreeProvider_ReturnsInspectableTreeFromInspector()
     {
         var expected = ToolResult.Ok(
             "Visual tree snapshot returned.",
@@ -155,4 +210,6 @@ public sealed class AvaloniaAdapterTests
 
         public void NotifyCanExecuteChanged() => CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     }
+
+    private sealed record PathLookupDataContext(string Value);
 }
