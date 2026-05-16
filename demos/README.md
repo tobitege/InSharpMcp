@@ -1,6 +1,6 @@
 # InSharpMcp Demo Apps
 
-The demo apps provide small, stable UI surfaces for manual adapter validation across the three planned environments from `plans/PLAN.md`.
+The demo apps provide small, stable UI surfaces for manual adapter validation across the implemented Uno, Avalonia, and WinForms adapters.
 
 ## Projects
 
@@ -39,6 +39,10 @@ Each demo includes:
 
 ## MCP Notes
 
-The demos enable the InSharpMcp Bridge by default. Start the InSharpMcp MCP server first, then start a demo. The demo registers itself with the broker over the local Bridge pipe, so `ism_list_instances` should show the running demo and inspection tools can target it.
+The demos enable the InSharpMcp Bridge by default. Start `InSharpMcp.Broker` first, then start a demo. The demo registers itself with the broker over the local Bridge pipe, so `ism_list_instances` should show the running demo and inspection tools can target it.
 
 The Bridge is app-side hosting code. The demos reference their framework adapter and `InSharpMcp.Bridge`; they do not reference broker internals from `InSharpMcp.Core`.
+
+All demos register with `AppBridgeCapabilities.Standard`, which includes runtime info, visual tree inspection, metadata, DataContext metadata, screenshots where supported, inspectable accessibility metadata, input, default actions, property editing, and close support.
+
+The demos are useful targets for `ism_set_element_property`: agents can set public element properties or direct DataContext properties on discovered element identifiers to validate debugging and test workflows. Property editing is a protected developer action, so validate changes with metadata, screenshots, events, or assertions after setting values.
