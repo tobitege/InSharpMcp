@@ -11,18 +11,20 @@
 
 <table align="center">
   <tr>
-    <td align="center"><strong>Core</strong><br><code>InSharpMcp</code> broker</td>
+    <td align="center"><strong>Core</strong><br>Broker and Bridge</td>
     <td align="center"><strong>Adapters</strong><br>Uno, Avalonia, WinForms</td>
     <td align="center"><strong>Transports</strong><br>stdio and HTTP</td>
     <td align="center"><strong>Tests</strong><br>xUnit projects</td>
   </tr>
 </table>
 
-InSharpMcp is a framework-independent MCP automation layer for .NET desktop applications. It gives an MCP client a bounded, structured way to inspect a running app, query UI elements, capture screenshots, read safe metadata, collect recent events, start traces, run simple assertions, and invoke carefully gated interaction tools.
+InSharpMcp is a framework-independent MCP automation layer for .NET desktop applications. It gives an MCP client a bounded, structured way to inspect running app instances, query UI elements, capture screenshots, read safe metadata, collect recent events, start traces, run simple assertions, and invoke carefully gated interaction tools.
 
-The core package does not reference Uno, Avalonia, WinForms, WPF, WinUI, or any other UI framework. UI frameworks plug in through small adapter packages that implement shared contracts from `InSharpMcp.Contracts`.
+The base NuGet package, `InSharpMcp`, is independent of any Uno, Avalonia, WinForms, WPF, WinUI, or other UI framework. UI frameworks plug in through separate adapter packages.
 
-This repository currently contains the core broker, shared contracts, Uno, Avalonia, and WinForms adapters, adapter tests, and demo apps for the three planned environments.
+The **Broker** is the actual process that will be integrated as the Mcp server in e.g. IDE's like Cursor or VS Code etc. It is not limited to a single app or a single active call. Running apps connect through `InSharpMcp.Bridge`, register as separate app instances, and the broker routes concurrent MCP calls to the selected instance.
+
+This repository currently contains the broker executable, reusable core broker library, app-side Bridge, shared contracts, Uno, Avalonia, and WinForms adapters, adapter tests, and demo apps for the three platform environments.
 
 ## Table of Contents
 
@@ -31,11 +33,13 @@ This repository currently contains the core broker, shared contracts, Uno, Avalo
 - [Requirements](#requirements)
 - [Build and Test](#build-and-test)
 - [How InSharpMcp Works](#how-insharpmcp-works)
+- [Install MCP in IDE](#install-mcp-in-ide)
+- [Using NuGet Packages](#using-nuget-packages)
 - [Starting the Broker](#starting-the-broker)
-- [Registering an App Instance](#registering-an-app-instance)
+- [Adding MCP to Your App](#adding-mcp-to-your-app)
 - [Adapter Capabilities](#adapter-capabilities)
 - [Interaction Behavior](#interaction-behavior)
-- [MCP Client Configuration](#mcp-client-configuration)
+- [Client Limit Configuration](#client-limit-configuration)
 - [Limits and Safety](#limits-and-safety)
 - [Security Model](#security-model)
 - [Selecting a Target App](#selecting-a-target-app)
@@ -48,7 +52,7 @@ This repository currently contains the core broker, shared contracts, Uno, Avalo
 
 ## Current Status
 
-The project is source-ready but not published as NuGet packages from this repository. Use project references while developing against it.
+Release builds create one base NuGet package named `InSharpMcp`, separate framework adapter packages, and a Windows installer for the broker executable.
 
 The verified implementation includes the callable `InSharpMcp.Broker` executable, the reusable `InSharpMcp.Core` broker library, the app-side `InSharpMcp.Bridge`, `InSharpMcp.Contracts`, `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, and `InSharpMcp.Adapters.WinForms`. The repository currently pins Uno Platform through `Uno.Sdk/6.5.33`. It pins Avalonia to `11.3.9`; the Avalonia adapter has also been compile-checked against Avalonia `12.0.3`, so the current implementation does not require separate v11 and v12 adapter source versions.
 
@@ -106,20 +110,130 @@ The demos are intentionally small and stable. They expose menus, buttons, inputs
 
 ## How InSharpMcp Works
 
-An MCP client talks to an InSharpMcp broker. The broker owns the MCP tool surface and routes each tool call to a selected app instance. The app instance is represented by an `AppInstanceDescriptor` and an active `IAppInstanceClient`.
+An MCP client talks to `InSharpMcp.Broker`. The broker owns the MCP tool surface, app registry, target selection, limit clamping, event logging, and local routing. It stays UI-framework-neutral.
 
-The core broker remains UI-framework-neutral. It knows how to select an app instance, enforce limits, authorize protected tools, serialize UI work through a bounded queue, and record tool events. The adapter knows how to run work on the UI thread and inspect the framework-specific UI tree.
+A running app does not expose MCP directly. It references `InSharpMcp.Bridge` plus exactly one framework adapter package. The Bridge registers an `AppInstanceDescriptor` with the broker over a local named pipe and carries broker requests back to the live app process.
+
+Adapters provide the framework-specific implementation: UI-thread dispatch, visual tree inspection, metadata, DataContext inspection, screenshots, accessibility data, input, default actions, and close behavior where supported.
 
 When exactly one compatible app instance is registered, tools can run without an explicit target. When more than one instance matches, InSharpMcp returns `ambiguous_target` instead of guessing. When a selected instance has no active client connection, it returns `stale_instance`.
 
-The broker process runs the MCP protocol interface. Apps do not expose MCP directly. A running app references `InSharpMcp.Bridge` plus its framework adapter, and the Bridge registers that live app instance with the broker over a local named pipe. The broker then routes MCP tool calls to that app through the Bridge.
+## Install MCP in IDE
+
+IDE MCP clients should launch `InSharpMcp.Broker` over stdio. The app under test must reference `InSharpMcp.Bridge` and be running so it can register itself with the broker.
+
+For live usage, point the IDE directly at `InSharpMcp.Broker.exe`. Use `<path>` for the folder that contains the broker executable, such as a local build output, release unpack folder, or installed tool location.
+
+For Cursor, add an entry like this to `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "insharp-mcp": {
+      "command": "<path>/InSharpMcp.Broker.exe",
+      "args": [
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "ISM_MAX_DEPTH": "20",
+        "ISM_MAX_NODES": "500",
+        "ISM_MAX_TEXT_CHARACTERS": "64000"
+      }
+    }
+  }
+}
+```
+
+For Codex, add the same broker command to `%USERPROFILE%\.codex\config.toml`:
+
+```toml
+[mcp_servers.InSharpMcp]
+command = "<path>/InSharpMcp.Broker.exe"
+args = [
+  "--transport",
+  "stdio",
+]
+env = { ISM_MAX_DEPTH = "20", ISM_MAX_NODES = "500", ISM_MAX_TEXT_CHARACTERS = "64000" }
+```
+
+Developers working from a source checkout can use `dotnet run` instead of a built executable:
+
+```json
+{
+  "mcpServers": {
+    "insharp-mcp": {
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "<repo>/mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj",
+        "--",
+        "--transport",
+        "stdio"
+      ]
+    }
+  }
+}
+```
+
+The broker is distributed as an executable through the release installer. It is not the NuGet package that application hosts reference.
+
+## Using NuGet Packages
+
+Application hosts reference the base package plus the adapter for their UI framework. The base package contains shared contracts, core broker services, and `InSharpMcp.Bridge`; adapter packages contain only framework-specific UI access, screenshots, input, and action support.
+
+```powershell
+dotnet add package InSharpMcp
+dotnet add package InSharpMcp.Adapters.WinForms
+```
+
+Use exactly one adapter package for the app framework:
+
+```powershell
+dotnet add package InSharpMcp.Adapters.Uno
+dotnet add package InSharpMcp.Adapters.Avalonia
+dotnet add package InSharpMcp.Adapters.WinForms
+```
+
+For local source development before packages are published to a feed, build once, then pack the NuGet projects into a folder and add that folder as a NuGet source. The base package is intentionally produced by `InSharpMcp.Contracts.csproj`: that project has `PackageId=InSharpMcp`, includes its own contracts assembly, and packs the already-built `InSharpMcp.Core.dll` and `InSharpMcp.Bridge.dll` into the same `.nupkg`. `InSharpMcp.Core` and `InSharpMcp.Bridge` are not packed as separate NuGet packages.
+
+```powershell
+dotnet build mcp/server/InSharpMcp.sln -c Release
+dotnet pack mcp/server/InSharpMcp.Contracts/InSharpMcp.Contracts.csproj -c Release --no-build -o artifacts/nuget
+dotnet pack mcp/server/InSharpMcp.Adapters.WinForms/InSharpMcp.Adapters.WinForms.csproj -c Release --no-build -o artifacts/nuget
+dotnet nuget add source artifacts/nuget --name InSharpMcpLocal
+```
+
+That creates `InSharpMcp.<version>.nupkg` for Contracts + Core + Bridge, plus one adapter package such as `InSharpMcp.Adapters.WinForms.<version>.nupkg`.
+
+Then use the same `dotnet add package` commands. Replace `WinForms` with `Uno` or `Avalonia` when packing and referencing a different adapter.
 
 ## Starting the Broker
 
-MCP is disabled by default. Host code should only start or register MCP when explicit configuration enables it. The built-in environment switch is:
+Starting `InSharpMcp.Broker` is explicit: an IDE MCP client launches it from its MCP configuration, or you run it yourself from a terminal. The broker is not loaded into the app process.
+
+`ISM_ENABLED` is an app-host opt-in flag. Use it in production apps when you want the MCP Bridge to be disabled unless the developer or test runner explicitly enables it. The sample demos skip this guard so they are immediately visible to a running broker.
+
+Set the flag for the current PowerShell session before starting an app that checks it:
 
 ```powershell
 $env:ISM_ENABLED = "1"
+```
+
+Unset it again to return to the default disabled behavior for guarded hosts:
+
+```powershell
+Remove-Item Env:\ISM_ENABLED
+```
+
+In app code, treat the flag as a condition before starting `InSharpMcp.Bridge`:
+
+```csharp
+if (string.Equals(Environment.GetEnvironmentVariable("ISM_ENABLED"), "1", StringComparison.Ordinal))
+{
+    await provider.GetRequiredService<InSharpMcpBridge>().StartAsync(registration);
+}
 ```
 
 For IDE MCP clients such as Codex or Cursor, use the broker executable. The default transport is stdio, which is what command-launched MCP clients normally expect.
@@ -130,7 +244,7 @@ From a source checkout, the command form is:
 dotnet run --project mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj -- --transport stdio
 ```
 
-`InSharpMcp.Broker` is also configured as a .NET tool project with the command name `insharp-mcp`. After packaging and installing it as a tool, the command becomes:
+Optional: you can package `InSharpMcp.Broker` as a .NET tool with the command name `insharp-mcp`. If you choose that installation style, the broker command becomes:
 
 ```powershell
 insharp-mcp --transport stdio
@@ -144,11 +258,13 @@ dotnet run --project mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj -- --
 
 HTTP always binds to `127.0.0.1` and maps the MCP endpoint at `/mcp` by default. Remote HTTP clients are rejected.
 
-## Registering an App Instance
+## Adding MCP to Your App
 
-App registration is normal dependency injection. Add the adapter for your framework, add `InSharpMcp.Bridge`, and start the bridge with an `AppBridgeRegistration`. The demos do this by default so they are visible to an already-running broker without setting `ISM_ENABLED`.
+App registration is normal dependency injection. Add the adapter for your framework, add `InSharpMcp.Bridge`, and start the bridge with an `AppBridgeRegistration`. Production apps should usually guard `StartAsync` behind an explicit opt-in such as `ISM_ENABLED`. The demo projects under `demos/` are the best starting references because each one wires the MCP Bridge into a real host app.
 
-The exact window/control type depends on the adapter. A WinForms host can wire itself like this:
+The exact root type depends on the adapter. Today each adapter attaches one app instance to one UI root: WinForms uses the main `Form`, while Avalonia and Uno use the main `Window`. That root is what the adapter inspects, screenshots, and uses for coordinate translation. For a typical single-window app, the main form/window is the app instance. Multi-window apps can register the window they want MCP clients to operate against, or expose separate app instance registrations if they need separate controllable surfaces.
+
+A WinForms host can wire its main form like this:
 
 ```csharp
 using InSharpMcp;
@@ -158,7 +274,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 var services = new ServiceCollection();
 services.AddInSharpMcpWinFormsAdapter(
-    form,
+    form, // Main Form used as this app instance's MCP root.
     appName: "Sample WinForms App",
     appVersion: "1.0.0",
     platformTarget: "WinForms");
@@ -185,7 +301,9 @@ await provider.GetRequiredService<InSharpMcpBridge>().StartAsync(registration);
 
 Dispose the service provider when the host closes. That stops the Bridge and unregisters the app instance from the broker when possible.
 
-Avalonia hosts use `AddInSharpMcpAvaloniaAdapter(window, ...)`. Uno hosts use `AddInSharpMcpUnoAdapter(window, ...)`. WinForms hosts use `AddInSharpMcpWinFormsAdapter(form, ...)`.
+Avalonia hosts use `AddInSharpMcpAvaloniaAdapter(window, ...)`.  
+Uno hosts use `AddInSharpMcpUnoAdapter(window, ...)`.  
+WinForms hosts use `AddInSharpMcpWinFormsAdapter(form, ...)`.
 
 ## Adapter Capabilities
 
@@ -211,48 +329,7 @@ Key and text input use native Windows input APIs instead of fabricated framework
 
 Default actions use public control contracts only. Uno invokes `ButtonBase.Command`, Avalonia invokes `ICommandSource.Command`, and WinForms invokes `IButtonControl.PerformClick()`. Elements without those public action surfaces return structured `unsupported`.
 
-## MCP Client Configuration
-
-Command-launched MCP clients should point at the broker executable. From a source checkout, a Codex/Cursor-style configuration looks like this:
-
-```json
-{
-  "mcpServers": {
-    "insharp-mcp": {
-      "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj",
-        "--",
-        "--transport",
-        "stdio"
-      ],
-      "env": {
-        "ISM_MAX_DEPTH": "20",
-        "ISM_MAX_NODES": "500",
-        "ISM_MAX_TEXT_CHARACTERS": "64000"
-      }
-    }
-  }
-}
-```
-
-After the broker is packaged and installed as the `insharp-mcp` .NET tool, the same config can use the tool command directly:
-
-```json
-{
-  "mcpServers": {
-    "insharp-mcp": {
-      "command": "insharp-mcp",
-      "args": [
-        "--transport",
-        "stdio"
-      ]
-    }
-  }
-}
-```
+## Client Limit Configuration
 
 An HTTP MCP client can connect to the default local endpoint with a configuration shaped like this:
 
@@ -303,7 +380,7 @@ ism_element_peer_default_action
 ism_close
 ```
 
-The broker does not use a shared token. Stdio is intended for IDE-launched local MCP clients, and HTTP is local-only: the broker binds to `127.0.0.1` and rejects non-loopback clients.
+Stdio is intended for IDE-launched local MCP clients, and HTTP is local-only: the broker binds to `127.0.0.1` and rejects non-loopback clients.
 
 ## Selecting a Target App
 
@@ -395,8 +472,6 @@ The existing tests cover routing, target ambiguity, stale instances, local broke
 
 ## Known Limitations
 
-InSharpMcp currently provides source projects, NuGet packages are planned to come shortly.
-
 The included Bridge provides a local named-pipe app-to-broker transport for desktop apps on the same machine. Production hosts can use it directly or replace it with a custom transport if they need a different discovery, authentication, or deployment model.
 
 Uno Desktop/Skia screenshot and pointer-click paths are intentionally unsupported until validated backend-specific implementations exist. Keyboard/text input uses native Windows input where available. Default action invocation is limited to public command/button patterns: Uno `ButtonBase.Command`, Avalonia `ICommandSource.Command`, and WinForms `IButtonControl.PerformClick()`.
@@ -405,4 +480,4 @@ The file `plans/ADAPTER_VALIDATION.md` records the current adapter validation st
 
 ## License
 
-See `LICENSE`.
+MIT licensed. See `LICENSE`.

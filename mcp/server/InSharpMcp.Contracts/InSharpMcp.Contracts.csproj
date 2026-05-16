@@ -5,9 +5,26 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
+    <PackageId>InSharpMcp</PackageId>
     <Version>1.0.0</Version>
-    <Title>InSharpMcp Contracts</Title>
-    <Description>Shared contracts and result models for InSharpMcp desktop UI automation adapters.</Description>
+    <Title>InSharpMcp</Title>
+    <Description>Core contracts, broker services, and app-side Bridge for InSharpMcp desktop UI automation.</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\InSharpMcp.Core\bin\$(Configuration)\net8.0\InSharpMcp.Core.dll" Pack="true" PackagePath="lib\net8.0\" Visible="false" />
+    <None Include="..\InSharpMcp.Bridge\bin\$(Configuration)\net8.0\InSharpMcp.Bridge.dll" Pack="true" PackagePath="lib\net8.0\" Visible="false" />
+  </ItemGroup>
 
 </Project>

@@ -1,0 +1,29 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="InSharpMcp Broker"
+    Manufacturer="tobitege"
+    Version="$(var.ProductVersion)"
+    UpgradeCode="{E205D1CC-0587-4A4C-A834-A17CC89847EF}"
+    Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of InSharpMcp Broker is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Feature Id="Main" Title="InSharpMcp Broker" Level="1">
+      <ComponentGroupRef Id="BrokerComponents" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <StandardDirectory Id="ProgramFilesFolder">
+      <Directory Id="INSTALLFOLDER" Name="InSharpMcp Broker" />
+    </StandardDirectory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="BrokerComponents" Directory="INSTALLFOLDER">
+      <Component Id="BrokerExecutable" Guid="{AB8AF4ED-BD9D-4BFA-8D97-920BB7500E21}">
+        <File Id="BrokerExe" Source="$(var.PublishDir)\InSharpMcp.Broker.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

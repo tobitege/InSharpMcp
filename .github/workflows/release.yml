@@ -1,6 +1,6 @@
 name: Release
 
-# Manual trigger only. Creates InSharpMcp NuGet packages and a GitHub release.
+# Manual trigger only. Creates InSharpMcp NuGet packages, a Broker Windows installer, and a GitHub release.
 
 on:
   workflow_dispatch:
@@ -67,7 +67,6 @@ jobs:
         run: |
           $projects = @(
               'mcp/server/InSharpMcp.Contracts/InSharpMcp.Contracts.csproj',
-              'mcp/server/InSharpMcp/InSharpMcp.csproj',
               'mcp/server/InSharpMcp.Adapters.Uno/InSharpMcp.Adapters.Uno.csproj',
               'mcp/server/InSharpMcp.Adapters.Avalonia/InSharpMcp.Adapters.Avalonia.csproj',
               'mcp/server/InSharpMcp.Adapters.WinForms/InSharpMcp.Adapters.WinForms.csproj'
@@ -94,7 +93,6 @@ jobs:
         run: |
           $projects = @(
               'mcp/server/InSharpMcp.Contracts/InSharpMcp.Contracts.csproj',
-              'mcp/server/InSharpMcp/InSharpMcp.csproj',
               'mcp/server/InSharpMcp.Adapters.Uno/InSharpMcp.Adapters.Uno.csproj',
               'mcp/server/InSharpMcp.Adapters.Avalonia/InSharpMcp.Adapters.Avalonia.csproj',
               'mcp/server/InSharpMcp.Adapters.WinForms/InSharpMcp.Adapters.WinForms.csproj'
@@ -108,6 +106,39 @@ jobs:
         with:
           name: nuget-packages
           path: ./artifacts/*.nupkg
+
+      - name: Publish Broker for Windows installer
+        shell: pwsh
+        run: |
+          $project = 'mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj'
+          $output = './artifacts/broker-publish'
+          dotnet publish $project `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -o $output
+
+      - name: Create Broker Windows installer
+        shell: pwsh
+        run: |
+          $brokerProject = 'mcp/server/InSharpMcp.Broker/InSharpMcp.Broker.csproj'
+          $installerProject = 'installer/windows/InSharpMcp.Broker.Installer.wixproj'
+          $publishDir = (Resolve-Path './artifacts/broker-publish').Path
+          $version = dotnet msbuild $brokerProject -getProperty:Version
+          dotnet build $installerProject `
+            -c Release `
+            -p:ProductVersion=$version `
+            -p:PublishDir=$publishDir `
+            -o './artifacts/installer'
+
+      - name: Upload Broker installer artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: broker-installer
+          path: ./artifacts/installer/*.msi
 
   publish:
     needs: [validate, build-and-pack]
@@ -132,6 +163,7 @@ jobs:
         run: |
           mkdir -p ./final
           find ./release-artifacts -name "*.nupkg" -exec cp {} ./final/ \;
+          find ./release-artifacts -name "*.msi" -exec cp {} ./final/ \;
           echo "=== Release artifacts ==="
           ls -la ./final/
 
@@ -170,10 +202,19 @@ jobs:
             if [ -n "$RELEASE_DESCRIPTION" ]; then
               printf '%s\n' "$RELEASE_DESCRIPTION"
             else
-              echo "NuGet package release batch."
+              echo "NuGet package and Broker installer release batch."
             fi
             echo ""
             echo "---"
+            echo ""
+            echo "## Windows Installer"
+            echo ""
+            echo "| Asset | Purpose |"
+            echo "|-------|---------|"
+            for installer in ./final/*.msi; do
+              name="$(basename "$installer")"
+              echo "| \`$name\` | Installs the self-contained InSharpMcp Broker executable. |"
+            done
             echo ""
             echo "## NuGet Packages"
             echo ""
