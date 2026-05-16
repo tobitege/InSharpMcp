@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: windows-latest
+          - os: windows-2025-vs2026
             rid: win-x64
             artifact_name: InSharpMcp-Demos-Windows-x64
 
@@ -71,7 +71,7 @@ jobs:
             -o ./publish/winforms
 
       - name: Zip Windows artifact
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-2025-vs2026'
         run: Compress-Archive -Path ./publish/* -DestinationPath ./${{ matrix.artifact_name }}.zip
         shell: pwsh
 

@@ -26,7 +26,7 @@ on:
 
 jobs:
   validate:
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     permissions:
       contents: read
     outputs:
@@ -54,7 +54,7 @@ jobs:
 
   build-and-pack:
     needs: validate
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     steps:
       - uses: actions/checkout@v6
 
@@ -142,7 +142,7 @@ jobs:
 
   publish:
     needs: [validate, build-and-pack]
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
     permissions:
       contents: write
 

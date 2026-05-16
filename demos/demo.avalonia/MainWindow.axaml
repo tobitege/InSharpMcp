@@ -40,7 +40,7 @@
 
         <TextBox AutomationProperties.AutomationId="SingleLineInput"
                  AutomationProperties.Name="Single-line input"
-                 Watermark="Type a selector target" />
+                 PlaceholderText="Type a selector target" />
 
         <TextBox AutomationProperties.AutomationId="EditableTextArea"
                  AutomationProperties.Name="Editable text area"
