@@ -28,7 +28,7 @@ This repository currently contains the broker executable, reusable core broker l
 
 ## Quick Install
 
-- Download the latest Mcp Server (Broker) from the latest release, usually `InSharpMcp.Broker-win-x64.msi
+- Download the latest Mcp Server (Broker) from the latest release, usually `InSharpMcp.Broker-win-x64.msi`.
 - Install it and configure your IDE MCP client, like Cursor/VS Code/OpenCode to run it with `--transport stdio`.
 - In your app project, add the base package: `dotnet add package InSharpMcp`.
 - Add exactly one adapter package for your UI framework: `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, or `InSharpMcp.Adapters.WinForms`.
