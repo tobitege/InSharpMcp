@@ -10,6 +10,8 @@ namespace InSharpMcp.Bridge;
 
 public sealed class InSharpMcpBridge : IAsyncDisposable, IDisposable
 {
+    private static readonly TimeSpan BrokerRegistrationAttemptTimeout = TimeSpan.FromSeconds(20);
+
     private readonly IUiTreeInspector _treeInspector;
     private readonly IScreenshotProvider _screenshotProvider;
     private readonly IAccessibilityTreeProvider _accessibilityTreeProvider;
@@ -152,7 +154,7 @@ public sealed class InSharpMcpBridge : IAsyncDisposable, IDisposable
                 var response = await LocalBridgePipe.SendAsync<LocalBrokerRequest, LocalBrokerResponse>(
                     _options.BrokerPipeName,
                     new LocalBrokerRequest(LocalBrokerRequestKind.Register, Registration: message),
-                    TimeSpan.FromSeconds(2),
+                    BrokerRegistrationAttemptTimeout,
                     cancellationToken).ConfigureAwait(false);
 
                 if (!response.Success)
