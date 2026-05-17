@@ -26,6 +26,16 @@ The **Broker** is the actual process that will be integrated as the Mcp server i
 
 This repository currently contains the broker executable, reusable core broker library, app-side Bridge, shared contracts, Uno, Avalonia, and WinForms adapters, adapter tests, and demo apps for the three platform environments.
 
+## Quick Install
+
+- Download the latest Mcp Server (Broker) from the latest release, usually `InSharpMcp.Broker-win-x64.msi
+- Install it and configure your IDE MCP client, like Cursor/VS Code/OpenCode to run it with `--transport stdio`.
+- In your app project, add the base package: `dotnet add package InSharpMcp`.
+- Add exactly one adapter package for your UI framework: `InSharpMcp.Adapters.Uno`, `InSharpMcp.Adapters.Avalonia`, or `InSharpMcp.Adapters.WinForms`.
+- Register the adapter with the app's main UI root, call `AddInSharpMcpBridge()`, and start `InSharpMcpBridge` with an `AppBridgeRegistration`, see below for example code or run the demo(s).
+- If outside of an IDE: run the broker and the app at the same time; once the app registers, MCP tools can inspect and interact with that app instance.
+- Inside an IDE, ask your agent to use the InSharpMcp tools and give it a try!
+
 ## Table of Contents
 
 - [Current Status](#current-status)
