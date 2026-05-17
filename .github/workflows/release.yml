@@ -24,6 +24,9 @@ on:
         type: boolean
         default: true
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: windows-2025-vs2026
