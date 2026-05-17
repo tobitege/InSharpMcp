@@ -324,6 +324,71 @@ public sealed class AvaloniaAdapterTests
     }
 
     [Fact]
+    public async Task VisualTreeInspector_RejectsMalformedAndOutOfRangeElementIds()
+    {
+        var root = new StackPanel();
+        root.Children.Add(new Button());
+        var dispatcher = new ImmediateDispatcher();
+        var inspector = new AvaloniaVisualTreeInspector(root, dispatcher);
+        var invoker = new AvaloniaAutomationPeerInvoker(root, dispatcher);
+        var editor = new AvaloniaElementPropertyEditor(root, dispatcher);
+        using var value = JsonDocument.Parse("\"ignored\"");
+
+        var malformedMetadata = await inspector.GetElementMetadataAsync(
+            "not/a/path",
+            new ToolLimits(),
+            TestContext.Current.CancellationToken);
+        var outOfRangeDataContext = await inspector.GetElementDataContextAsync(
+            "0/99",
+            new ToolLimits(),
+            TestContext.Current.CancellationToken);
+        var malformedInvoke = await invoker.InvokeDefaultActionAsync(
+            "0/-1",
+            TestContext.Current.CancellationToken);
+        var outOfRangeEdit = await editor.SetElementPropertyAsync(
+            "0/99",
+            ElementPropertyTarget.Element,
+            nameof(Button.Name),
+            value.RootElement,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(malformedMetadata.Success);
+        Assert.Equal("not_found", malformedMetadata.ErrorCode);
+        Assert.False(outOfRangeDataContext.Success);
+        Assert.Equal("not_found", outOfRangeDataContext.ErrorCode);
+        Assert.False(malformedInvoke.Success);
+        Assert.Equal("not_found", malformedInvoke.ErrorCode);
+        Assert.False(outOfRangeEdit.Success);
+        Assert.Equal("not_found", outOfRangeEdit.ErrorCode);
+    }
+
+    [Fact]
+    public async Task VisualTreeInspector_TruncatesTextAndReturnsNullDataContext()
+    {
+        var root = new StackPanel();
+        root.Children.Add(new TextBlock { Text = "abcdef" });
+        var inspector = new AvaloniaVisualTreeInspector(root, new ImmediateDispatcher());
+
+        var metadataResult = await inspector.GetElementMetadataAsync(
+            "0/0",
+            new ToolLimits { MaxTextCharacters = 3 },
+            TestContext.Current.CancellationToken);
+        var dataContextResult = await inspector.GetElementDataContextAsync(
+            "0/0",
+            new ToolLimits(),
+            TestContext.Current.CancellationToken);
+
+        Assert.True(metadataResult.Success);
+        var metadata = Assert.IsType<ElementMetadata>(metadataResult.Data);
+        Assert.Equal("abc", metadata.Text);
+        Assert.True(dataContextResult.Success);
+        var dataContext = Assert.IsType<DataContextMetadata>(dataContextResult.Data);
+        Assert.Equal("<null>", dataContext.TypeName);
+        Assert.Empty(dataContext.Properties);
+        Assert.False(dataContext.Truncated);
+    }
+
+    [Fact]
     public async Task ElementLookup_UsesPathWithoutDefaultNodeBudget()
     {
         var root = new StackPanel();
@@ -409,6 +474,49 @@ public sealed class AvaloniaAdapterTests
         Assert.Equal("After", button.Name);
         Assert.True(dataContextResult.Success);
         Assert.Equal(42, Assert.IsType<MutableDataContext>(button.DataContext).Count);
+    }
+
+    [Fact]
+    public async Task ElementPropertyEditor_ReturnsStableErrorsForInvalidRequests()
+    {
+        var root = new StackPanel();
+        root.Children.Add(new Button());
+        var editor = new AvaloniaElementPropertyEditor(root, new ImmediateDispatcher());
+        using var value = JsonDocument.Parse("\"ignored\"");
+
+        var missingName = await editor.SetElementPropertyAsync(
+            "0/0",
+            ElementPropertyTarget.Element,
+            "",
+            value.RootElement,
+            TestContext.Current.CancellationToken);
+        var invalidTarget = await editor.SetElementPropertyAsync(
+            "0/0",
+            "bogus",
+            nameof(Button.Name),
+            value.RootElement,
+            TestContext.Current.CancellationToken);
+        var unavailableDataContext = await editor.SetElementPropertyAsync(
+            "0/0",
+            ElementPropertyTarget.DataContext,
+            nameof(MutableDataContext.Count),
+            value.RootElement,
+            TestContext.Current.CancellationToken);
+        var missingProperty = await editor.SetElementPropertyAsync(
+            "0/0",
+            ElementPropertyTarget.Element,
+            "MissingProperty",
+            value.RootElement,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(missingName.Success);
+        Assert.Equal("invalid_property", missingName.ErrorCode);
+        Assert.False(invalidTarget.Success);
+        Assert.Equal("invalid_target_object", invalidTarget.ErrorCode);
+        Assert.False(unavailableDataContext.Success);
+        Assert.Equal("target_unavailable", unavailableDataContext.ErrorCode);
+        Assert.False(missingProperty.Success);
+        Assert.Equal("property_not_found", missingProperty.ErrorCode);
     }
 
     [Fact]

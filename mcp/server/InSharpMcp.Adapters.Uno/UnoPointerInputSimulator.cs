@@ -96,7 +96,14 @@ public sealed class UnoPointerInputSimulator : IPointerInputSimulator, IElementC
         out int screenY,
         out ToolResult error)
     {
-#if WINDOWS
+        if (!OperatingSystem.IsWindows())
+        {
+            screenX = 0;
+            screenY = 0;
+            error = ToolResult.Fail("Uno pointer input is supported only when a native Windows window handle is available.", "unsupported");
+            return false;
+        }
+
         if (!TryGetRoot(out var root, out error))
         {
             screenX = 0;
@@ -131,12 +138,6 @@ public sealed class UnoPointerInputSimulator : IPointerInputSimulator, IElementC
             out screenX,
             out screenY,
             out error);
-#else
-        screenX = 0;
-        screenY = 0;
-        error = ToolResult.Fail("Uno pointer input is supported only when a native Windows window handle is available.", "unsupported");
-        return false;
-#endif
     }
 
     private bool TryGetRoot(out UIElement root, out ToolResult error)
@@ -167,9 +168,10 @@ public sealed class UnoPointerInputSimulator : IPointerInputSimulator, IElementC
 
     private static bool HitsElementOrDescendant(UIElement root, DependencyObject element, Point rootPoint)
     {
-        return VisualTreeHelper.FindElementsInHostCoordinates(rootPoint, root)
+        var hit = VisualTreeHelper.FindElementsInHostCoordinates(rootPoint, root)
             .OfType<DependencyObject>()
-            .Any(hit => hit == element || IsDescendantOf(hit, element));
+            .LastOrDefault();
+        return hit == element || hit is not null && IsDescendantOf(hit, element);
     }
 
     private static bool IsDescendantOf(DependencyObject descendant, DependencyObject ancestor)
