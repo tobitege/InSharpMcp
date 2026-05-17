@@ -30,7 +30,7 @@ public sealed class BridgeTransportTests
             },
         });
         using var host = builder.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
         var propertyEditor = new TestElementPropertyEditor();
 
         await using var bridge = new InSharpMcpBridge(
@@ -45,7 +45,8 @@ public sealed class BridgeTransportTests
                 BrokerPipeName = pipeName,
                 RequestTimeout = TimeSpan.FromSeconds(5),
             },
-            propertyEditor);
+            propertyEditor,
+            new TestElementClickSimulator());
 
         await bridge.StartAsync(new AppBridgeRegistration(
             "insharpmcp.test",
@@ -54,7 +55,7 @@ public sealed class BridgeTransportTests
             "Test",
             "1.0.0",
             AppBridgeCapabilities.Standard,
-            InstanceId: "bridge-test"));
+            InstanceId: "bridge-test"), TestContext.Current.CancellationToken);
 
         var registry = host.Services.GetRequiredService<AppInstanceRegistry>();
         var instances = registry.List();
@@ -63,7 +64,8 @@ public sealed class BridgeTransportTests
         var result = await InSharpMcpTools.VisualTreeSnapshot(
             host.Services.GetRequiredService<AppInstanceRouter>(),
             host.Services.GetRequiredService<ToolLimitPolicyEvaluator>(),
-            new AppTargetSelector(InstanceId: "bridge-test"));
+            new AppTargetSelector(InstanceId: "bridge-test"),
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         var snapshot = Assert.IsType<UiTreeSnapshot>(result.Data);
@@ -74,7 +76,8 @@ public sealed class BridgeTransportTests
             host.Services.GetRequiredService<AppInstanceRouter>(),
             host.Services.GetRequiredService<ToolLimitPolicyEvaluator>(),
             "0/0",
-            new AppTargetSelector(InstanceId: "bridge-test"));
+            new AppTargetSelector(InstanceId: "bridge-test"),
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(metadataResult.Success);
         var metadata = Assert.IsType<ElementMetadata>(metadataResult.Data);
@@ -86,7 +89,8 @@ public sealed class BridgeTransportTests
             "0/0",
             "Text",
             propertyValue.RootElement,
-            target: new AppTargetSelector(InstanceId: "bridge-test"));
+            target: new AppTargetSelector(InstanceId: "bridge-test"),
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(propertyResult.Success);
         Assert.Equal("0/0", propertyEditor.ElementIdentifier);
@@ -94,7 +98,7 @@ public sealed class BridgeTransportTests
         Assert.Equal(JsonValueKind.String, propertyEditor.ValueKind);
         Assert.IsType<ElementPropertySetResult>(propertyResult.Data);
 
-        await host.StopAsync();
+        await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -113,7 +117,7 @@ public sealed class BridgeTransportTests
             },
         });
         using var host = builder.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         var bridge = new InSharpMcpBridge(
             new TestTreeInspector(),
@@ -136,12 +140,12 @@ public sealed class BridgeTransportTests
             "Test",
             "1.0.0",
             AppBridgeCapabilities.Standard,
-            InstanceId: "bridge-heartbeat-test"));
+            InstanceId: "bridge-heartbeat-test"), TestContext.Current.CancellationToken);
 
         var registry = host.Services.GetRequiredService<AppInstanceRegistry>();
         var firstHeartbeat = registry.List().Single(instance => instance.InstanceId == "bridge-heartbeat-test").LastHeartbeatAt;
 
-        await Task.Delay(200);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
 
         var secondHeartbeat = registry.List().Single(instance => instance.InstanceId == "bridge-heartbeat-test").LastHeartbeatAt;
         Assert.True(secondHeartbeat > firstHeartbeat);
@@ -149,7 +153,7 @@ public sealed class BridgeTransportTests
         await bridge.DisposeAsync();
 
         Assert.DoesNotContain(registry.List(), instance => instance.InstanceId == "bridge-heartbeat-test");
-        await host.StopAsync();
+        await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -166,7 +170,7 @@ public sealed class BridgeTransportTests
             },
         });
         using var host = builder.Build();
-        await host.StartAsync();
+        await host.StartAsync(TestContext.Current.CancellationToken);
 
         await using var pipe = new NamedPipeClientStream(
             ".",
@@ -186,7 +190,7 @@ public sealed class BridgeTransportTests
         Assert.NotNull(response);
         Assert.False(response.Success);
         Assert.Equal("Invalid local broker request.", response.Error);
-        await host.StopAsync();
+        await host.StopAsync(TestContext.Current.CancellationToken);
     }
 
     private sealed class TestTreeInspector : IUiTreeInspector
@@ -272,6 +276,16 @@ public sealed class BridgeTransportTests
             cancellationToken.ThrowIfCancellationRequested();
             _ = text;
             return Task.FromResult(ToolResult.Ok("Typed."));
+        }
+    }
+
+    private sealed class TestElementClickSimulator : IElementClickSimulator
+    {
+        public Task<ToolResult> ElementClickAsync(string elementIdentifier, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = elementIdentifier;
+            return Task.FromResult(ToolResult.Ok("Element clicked."));
         }
     }
 

@@ -24,7 +24,7 @@ public sealed class RoutedToolRegressionTests
         var result = await InSharpMcpTools.VisualTreeSnapshot(
             router,
             new ToolLimitPolicyEvaluator(),
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("ambiguous_target", result.ErrorCode);
@@ -40,7 +40,7 @@ public sealed class RoutedToolRegressionTests
             router,
             new ToolLimitPolicyEvaluator(),
             new AppTargetSelector(InstanceId: "instance-1"),
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("stale_instance", result.ErrorCode);
@@ -66,7 +66,7 @@ public sealed class RoutedToolRegressionTests
             new ToolLimitPolicyEvaluator(),
             "root",
             new AppTargetSelector(InstanceId: "instance-2"),
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Null(firstInspector.LastElementIdentifier);
@@ -86,7 +86,7 @@ public sealed class RoutedToolRegressionTests
             new InteractionInputValidator(),
             x: 1,
             y: 1,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("ambiguous_target", result.ErrorCode);
@@ -104,7 +104,7 @@ public sealed class RoutedToolRegressionTests
 
         var result = await InSharpMcpTools.Close(
             router,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.True(provider.Closed);
@@ -126,7 +126,7 @@ public sealed class RoutedToolRegressionTests
             router,
             new InteractionInputValidator(),
             "hello",
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         var stop = InSharpMcpTools.StopTrace(router, traceId);
 

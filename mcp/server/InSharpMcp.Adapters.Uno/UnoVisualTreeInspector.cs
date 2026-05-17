@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Windows.Foundation;
 
 namespace InSharpMcp.Adapters.Uno;
 
@@ -24,7 +25,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
                 token.ThrowIfCancellationRequested();
                 var budget = new NodeVisitBudget(limits.MaxNodes);
                 var truncated = false;
-                var rootNode = CopyBounded(_root, "0", currentDepth: 1, limits, budget, ref truncated);
+                var rootNode = CopyBounded(_root, _root, "0", currentDepth: 1, limits, budget, ref truncated);
                 var snapshot = new UiTreeSnapshot(rootNode!, budget.VisitedNodes, truncated);
                 return ToolResult.Ok("Visual tree snapshot returned.", snapshot);
             },
@@ -44,7 +45,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
                     return ToolResult.Fail("Element was not found.", "not_found");
                 }
 
-                return ToolResult.Ok("Element metadata returned.", CreateMetadata(match.Value.Element, match.Value.Identifier, limits));
+                return ToolResult.Ok("Element metadata returned.", CreateMetadata(_root, match.Value.Element, match.Value.Identifier, limits));
             },
             cancellationToken);
 
@@ -74,6 +75,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
             cancellationToken);
 
     private static UiElementNode? CopyBounded(
+        DependencyObject root,
         DependencyObject element,
         string identifier,
         int currentDepth,
@@ -95,7 +97,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
                 truncated = true;
             }
 
-            return CreateNode(element, identifier, limits, Array.Empty<UiElementNode>());
+            return CreateNode(root, element, identifier, limits, Array.Empty<UiElementNode>());
         }
 
         var children = new List<UiElementNode>();
@@ -103,6 +105,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
         {
             var child = VisualTreeHelper.GetChild(element, index);
             var copied = CopyBounded(
+                root,
                 child,
                 $"{identifier}/{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
                 currentDepth + 1,
@@ -115,7 +118,7 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
             }
         }
 
-        return CreateNode(element, identifier, limits, children);
+        return CreateNode(root, element, identifier, limits, children);
     }
 
     internal static (DependencyObject Element, string Identifier)? Find(
@@ -147,12 +150,13 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
     }
 
     private static UiElementNode CreateNode(
+        DependencyObject root,
         DependencyObject element,
         string identifier,
         ToolLimits limits,
         IReadOnlyList<UiElementNode> children)
     {
-        var metadata = CreateMetadata(element, identifier, limits);
+        var metadata = CreateMetadata(root, element, identifier, limits);
         return new UiElementNode(
             metadata.ElementIdentifier,
             metadata.Type,
@@ -162,10 +166,12 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
             metadata.Role,
             metadata.IsVisible,
             metadata.IsEnabled,
-            children);
+            children,
+            metadata.Bounds);
     }
 
-    private static ElementMetadata CreateMetadata(
+    internal static ElementMetadata CreateMetadata(
+        DependencyObject root,
         DependencyObject element,
         string identifier,
         ToolLimits limits)
@@ -189,7 +195,88 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
             text,
             control is null ? null : element.GetType().Name,
             frameworkElement?.Visibility == Visibility.Visible,
-            control?.IsEnabled);
+            control?.IsEnabled,
+            GetBounds(root, element));
+    }
+
+    internal static UiElementBounds? GetBounds(DependencyObject root, DependencyObject element)
+    {
+        if (root is not UIElement rootElement || element is not FrameworkElement frameworkElement)
+        {
+            return null;
+        }
+
+        var point = new Point(0, 0);
+        if (element != root)
+        {
+            var transform = frameworkElement.TransformToVisual(rootElement);
+            point = transform.TransformPoint(point);
+        }
+
+        return new UiElementBounds(point.X, point.Y, frameworkElement.ActualWidth, frameworkElement.ActualHeight);
+    }
+
+    internal static bool TryGetVisibleBounds(DependencyObject root, DependencyObject element, out UiElementBounds bounds)
+    {
+        if (GetBounds(root, element) is not { Width: > 0, Height: > 0 } elementBounds)
+        {
+            bounds = new UiElementBounds(0, 0, 0, 0);
+            return false;
+        }
+
+        if (element is FrameworkElement { Visibility: not Visibility.Visible })
+        {
+            bounds = new UiElementBounds(0, 0, 0, 0);
+            return false;
+        }
+
+        var visible = new Rect(elementBounds.X, elementBounds.Y, elementBounds.Width, elementBounds.Height);
+        for (var current = VisualTreeHelper.GetParent(element); current is not null; current = VisualTreeHelper.GetParent(current))
+        {
+            if (current is FrameworkElement { Visibility: not Visibility.Visible })
+            {
+                bounds = new UiElementBounds(0, 0, 0, 0);
+                return false;
+            }
+
+            if (GetBounds(root, current) is not { Width: > 0, Height: > 0 } currentBounds)
+            {
+                bounds = new UiElementBounds(0, 0, 0, 0);
+                return false;
+            }
+
+            if (current == root || current is UIElement { Clip: not null })
+            {
+                visible = Intersect(
+                    visible,
+                    new Rect(currentBounds.X, currentBounds.Y, currentBounds.Width, currentBounds.Height));
+                if (visible.Width <= 0 || visible.Height <= 0)
+                {
+                    bounds = new UiElementBounds(0, 0, 0, 0);
+                    return false;
+                }
+            }
+
+            if (current == root)
+            {
+                bounds = new UiElementBounds(visible.X, visible.Y, visible.Width, visible.Height);
+                return true;
+            }
+        }
+
+        bounds = new UiElementBounds(0, 0, 0, 0);
+        return false;
+    }
+
+    private static Rect Intersect(Rect first, Rect second)
+    {
+        var left = Math.Max(first.X, second.X);
+        var top = Math.Max(first.Y, second.Y);
+        var right = Math.Min(first.X + first.Width, second.X + second.Width);
+        var bottom = Math.Min(first.Y + first.Height, second.Y + second.Height);
+        return right > left && bottom > top
+            ? new Rect(left, top, right - left, bottom - top)
+            : new Rect(0, 0, 0, 0);
     }
 
     private static string? GetText(DependencyObject element) =>

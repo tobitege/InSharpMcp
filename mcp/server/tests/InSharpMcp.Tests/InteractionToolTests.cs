@@ -20,7 +20,7 @@ public sealed class InteractionToolTests
             new InteractionInputValidator(),
             x: -1,
             y: 1,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("invalid_coordinates", result.ErrorCode);
@@ -39,11 +39,32 @@ public sealed class InteractionToolTests
             router,
             new InteractionInputValidator(),
             "hello",
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         var entry = Assert.Single(log.List(new HashSet<string>(StringComparer.Ordinal) { "interaction" }, maximumCount: 10));
         Assert.Equal("ism_type_text", entry.Message);
+    }
+
+    [Fact]
+    public async Task ElementClick_RoutesToInputSimulatorAndRecordsEvent()
+    {
+        var log = new BoundedEventLog();
+        var elementClick = new RecordingElementClickSimulator();
+        var client = ToolRoutingFixture.CreateClient(
+            elementClickSimulator: elementClick,
+            eventLog: log);
+        var router = ToolRoutingFixture.CreateRouter(client);
+
+        var result = await InSharpMcpTools.ElementClick(
+            router,
+            "0/1",
+            cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.True(result.Success);
+        Assert.Equal("0/1", elementClick.ElementIdentifier);
+        var entry = Assert.Single(log.List(new HashSet<string>(StringComparer.Ordinal) { "interaction" }, maximumCount: 10));
+        Assert.Equal("ism_element_click", entry.Message);
     }
 
     [Fact]
@@ -57,7 +78,7 @@ public sealed class InteractionToolTests
             new InteractionInputValidator(),
             "A",
             ["unsupported"],
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("invalid_modifier", result.ErrorCode);
@@ -72,7 +93,7 @@ public sealed class InteractionToolTests
         var result = await InSharpMcpTools.ElementPeerDefaultAction(
             router,
             "missing",
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("unsupported", result.ErrorCode);
@@ -94,7 +115,7 @@ public sealed class InteractionToolTests
             "0/1",
             "Text",
             document.RootElement,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal("0/1", editor.ElementIdentifier);
@@ -128,6 +149,18 @@ public sealed class InteractionToolTests
             cancellationToken.ThrowIfCancellationRequested();
             _ = text;
             return Task.FromResult(ToolResult.Ok("typed"));
+        }
+    }
+
+    private sealed class RecordingElementClickSimulator : IElementClickSimulator
+    {
+        public string? ElementIdentifier { get; private set; }
+
+        public Task<ToolResult> ElementClickAsync(string elementIdentifier, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ElementIdentifier = elementIdentifier;
+            return Task.FromResult(ToolResult.Ok("element clicked"));
         }
     }
 

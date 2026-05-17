@@ -10,7 +10,7 @@ public sealed class AdapterContractTests
     [Fact]
     public async Task Dispatcher_RunsSynchronousUiWork()
     {
-        var result = await _fixture.Dispatcher.RunAsync(_ => 42, CancellationToken.None);
+        var result = await _fixture.Dispatcher.RunAsync(_ => 42, TestContext.Current.CancellationToken);
 
         Assert.Equal(42, result);
     }
@@ -28,7 +28,7 @@ public sealed class AdapterContractTests
     [Fact]
     public async Task VisualTreeSnapshot_ReturnsFrameworkNeutralTree()
     {
-        var result = await _fixture.TreeInspector.GetVisualTreeSnapshotAsync(new ToolLimits(), CancellationToken.None);
+        var result = await _fixture.TreeInspector.GetVisualTreeSnapshotAsync(new ToolLimits(), TestContext.Current.CancellationToken);
 
         var snapshot = Assert.IsType<UiTreeSnapshot>(result.Data);
         Assert.True(result.Success);
@@ -41,7 +41,7 @@ public sealed class AdapterContractTests
     {
         var limits = new ToolLimits { MaxNodes = 1 };
 
-        var result = await _fixture.TreeInspector.GetVisualTreeSnapshotAsync(limits, CancellationToken.None);
+        var result = await _fixture.TreeInspector.GetVisualTreeSnapshotAsync(limits, TestContext.Current.CancellationToken);
 
         var snapshot = Assert.IsType<UiTreeSnapshot>(result.Data);
         Assert.True(snapshot.Truncated);
@@ -53,12 +53,23 @@ public sealed class AdapterContractTests
     {
         var limits = new ToolLimits { MaxTextCharacters = 4 };
 
-        var result = await _fixture.TreeInspector.GetElementMetadataAsync("notes-input", limits, CancellationToken.None);
+        var result = await _fixture.TreeInspector.GetElementMetadataAsync("notes-input", limits, TestContext.Current.CancellationToken);
 
         var metadata = Assert.IsType<ElementMetadata>(result.Data);
         Assert.True(result.Success);
         Assert.Equal("TextBox", metadata.Type);
         Assert.Equal("Init", metadata.Text);
+        Assert.Equal(new UiElementBounds(10, 50, 160, 30), metadata.Bounds);
+    }
+
+    [Fact]
+    public async Task VisualTreeSnapshot_ReturnsRootRelativeBounds()
+    {
+        var result = await _fixture.TreeInspector.GetVisualTreeSnapshotAsync(new ToolLimits(), TestContext.Current.CancellationToken);
+
+        var snapshot = Assert.IsType<UiTreeSnapshot>(result.Data);
+        var button = Assert.Single(snapshot.Root.Children ?? [], node => node.ElementIdentifier == "save-button");
+        Assert.Equal(new UiElementBounds(10, 10, 80, 30), button.Bounds);
     }
 
     [Fact]
@@ -67,7 +78,7 @@ public sealed class AdapterContractTests
         var result = await _fixture.TreeInspector.GetElementDataContextAsync(
             "notes-input",
             new ToolLimits(),
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("unsupported", result.ErrorCode);
@@ -76,7 +87,7 @@ public sealed class AdapterContractTests
     [Fact]
     public async Task Screenshot_ReturnsPngBytes()
     {
-        var result = await _fixture.ScreenshotProvider.CaptureScreenshotAsync(CancellationToken.None);
+        var result = await _fixture.ScreenshotProvider.CaptureScreenshotAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.NotNull(result.PngBytes);
@@ -86,10 +97,18 @@ public sealed class AdapterContractTests
     [Fact]
     public async Task PointerInput_RejectsNegativeCoordinates()
     {
-        var result = await _fixture.PointerInput.PointerClickAsync(-1, 0, CancellationToken.None);
+        var result = await _fixture.PointerInput.PointerClickAsync(-1, 0, TestContext.Current.CancellationToken);
 
         Assert.False(result.Success);
         Assert.Equal("invalid_coordinates", result.ErrorCode);
+    }
+
+    [Fact]
+    public async Task PointerInput_ClicksElementByIdentifier()
+    {
+        var result = await _fixture.ElementClick.ElementClickAsync("save-button", TestContext.Current.CancellationToken);
+
+        Assert.True(result.Success);
     }
 
     [Fact]
@@ -106,7 +125,7 @@ public sealed class AdapterContractTests
                 return ToolResult.Ok("first");
             },
             new ToolLimits(),
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
         var second = queue.RunAsync(
             "second",
             _ =>
@@ -115,7 +134,7 @@ public sealed class AdapterContractTests
                 return Task.FromResult(ToolResult.Ok("second"));
             },
             new ToolLimits(),
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         await Task.WhenAll(first, second);
 

@@ -330,9 +330,9 @@ Unsupported results are normal tool outcomes. They let MCP clients distinguish "
 
 Pointer, keyboard, text, default-action, and property-editing tools are protected operations. They are routed through the selected app instance, run on the adapter dispatcher where UI state is needed, and use structured `ToolResult` outcomes.
 
-Pointer coordinates are adapter-root-relative, not raw desktop/screenshot coordinates. WinForms translates them with `Control.PointToScreen`. Avalonia translates them with Avalonia `PointToScreen`. Uno translates them through the Windows target's native HWND when available; Uno Desktop/Skia pointer clicks remain `unsupported` until a validated backend-specific screen-coordinate path exists.
+Pointer coordinates are adapter-root-relative, not raw desktop/screenshot coordinates. Each adapter rejects raw pointer coordinates outside the registered root bounds before native input is sent. WinForms translates accepted points with `Control.PointToScreen`. Avalonia translates them with Avalonia `PointToScreen`. Uno translates them through the Windows target's native HWND when available; Uno Desktop/Skia pointer clicks remain `unsupported` until a validated backend-specific screen-coordinate path exists.
 
-When a caller starts from visual evidence such as a screenshot or UI Automation `BoundingRectangle`, first convert the target screen point into the adapter root's client coordinate space. For WinForms, use the actual form handle with Win32 `ScreenToClient`; do not pass UIA screen coordinates directly, and do not rely on manual DPI division. A successful `ism_pointer_click` only means the input injector sent a click. Validate the intended effect with state inspection, a screenshot, an event, or a control-specific assertion.
+Prefer `ism_element_click` when the target is a discovered element. It resolves the current element identifier, computes the element center from root-relative bounds, verifies the point is inside both the element and the registered root, then sends native input. When a caller starts from visual evidence such as a screenshot or UI Automation `BoundingRectangle`, first convert the target screen point into the adapter root's client coordinate space before using `ism_pointer_click`. For WinForms, use the actual form handle with Win32 `ScreenToClient`; do not pass UIA screen coordinates directly, and do not rely on manual DPI division. A successful click tool only means the input injector sent a click. Validate the intended effect with state inspection, a screenshot, an event, or a control-specific assertion.
 
 Key and text input use native Windows input APIs instead of fabricated framework events. Key presses accept a single alphanumeric character, `F1` through `F12`, or one of `enter`, `escape`, `tab`, `backspace`, `delete`, `space`, `arrowup`, `arrowdown`, `arrowleft`, `arrowright`, `home`, `end`, `pageup`, and `pagedown`. Modifiers are `alt`, `control`/`ctrl`, `shift`, and `meta`/`win`. Text input is capped by the interaction validator.
 
@@ -385,6 +385,7 @@ Some tools expose private app state or modify the running app. MCP clients shoul
 ism_get_screenshot
 ism_get_element_datacontext
 ism_pointer_click
+ism_element_click
 ism_key_press
 ism_type_text
 ism_element_peer_default_action
@@ -475,7 +476,7 @@ Example initial result:
 }
 ```
 
-If the agent already knows what it is looking for, it can use `ism_query_elements` directly with fields such as `type`, `name`, or `automationId`. For a first overview, `ism_visualtree_snapshot` is the safer starting point; then use the returned `elementIdentifier` with `ism_get_element_metadata`, `ism_get_element_datacontext`, `ism_element_peer_default_action`, or `ism_set_element_property`. Collapsed or virtualized items appear only when the UI framework has realized them in the current tree.
+If the agent already knows what it is looking for, it can use `ism_query_elements` directly with fields such as `type`, `name`, or `automationId`. For a first overview, `ism_visualtree_snapshot` is the safer starting point; then use the returned `elementIdentifier` with `ism_get_element_metadata`, `ism_get_element_datacontext`, `ism_element_click`, `ism_element_peer_default_action`, or `ism_set_element_property`. Collapsed or virtualized items appear only when the UI framework has realized them in the current tree.
 
 Element identifiers use adapter-generated tree paths such as `0`, `0/0`, or `0/1/2`. The root is always `0`; each following segment is a zero-based child index. For example, `0/1/2` means root element, second child, then third child. Use `ism_visualtree_snapshot` or `ism_query_elements` to discover identifiers, then pass the identifier to metadata, DataContext, property-editing, or default-action tools.
 
@@ -497,7 +498,8 @@ The tool surface uses the `ism_` prefix.
 | `ism_wait_for_element` | Poll for a matching element until a bounded timeout. |
 | `ism_get_accessibility_tree` | Return the selected adapter's inspectable tree with accessibility-related metadata where available. This is not a native platform accessibility-provider tree. |
 | `ism_get_event_log` | Read recent bounded, redacted tool and adapter events. |
-| `ism_pointer_click` | Request a pointer click using adapter-root/client coordinates, not raw screen pixels. Convert UIA/screenshot points first and validate the resulting state. This may return `unsupported`. |
+| `ism_pointer_click` | Request a pointer click using adapter-root/client coordinates, not raw screen pixels. Out-of-root coordinates are rejected. This may return `unsupported`. |
+| `ism_element_click` | Resolve an element identifier and click its verified in-bounds center. This is protected and may return `unsupported`, `not_found`, `not_clickable`, or `out_of_bounds`. |
 | `ism_key_press` | Request a key press. This is protected and may return `unsupported`. |
 | `ism_type_text` | Request text input. This is protected and may return `unsupported`. |
 | `ism_element_peer_default_action` | Invoke a public default action where the adapter supports it. This is protected. |
@@ -513,9 +515,9 @@ Normal assertion failures return successful tool calls with an `AssertionResult`
 
 ## Data Returned by Inspection Tools
 
-Visual-tree snapshots are built from `UiElementNode`. Nodes include an element identifier, type, optional name, optional automation ID, optional text, optional role, optional visible/enabled states, and children.
+Visual-tree snapshots are built from `UiElementNode`. Nodes include an element identifier, type, optional name, optional automation ID, optional text, optional role, optional visible/enabled states, optional root-relative bounds, and children.
 
-Element metadata uses the same safe fields without child nodes. DataContext metadata includes the DataContext type name and public primitive/string-like properties only. It does not recursively walk arbitrary object graphs, and sensitive property names such as password, secret, token, or key are redacted. Property-editing results include the element identifier, edited target object, property name, target type, property type, and formatted previous/new values where readable.
+Element metadata uses the same safe fields without child nodes, including root-relative bounds where the adapter can compute them. DataContext metadata includes the DataContext type name and public primitive/string-like properties only. It does not recursively walk arbitrary object graphs, and sensitive property names such as password, secret, token, or key are redacted. Property-editing results include the element identifier, edited target object, property name, target type, property type, and formatted previous/new values where readable.
 
 Trace summaries contain a trace ID, timestamps, bounded event entries, and a truncation flag.
 

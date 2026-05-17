@@ -37,7 +37,7 @@ public sealed class TraceAndAssertionToolTests
             new ToolLimitPolicyEvaluator(),
             new ElementSelectorMatcher(),
             new ElementSelector(Name: "Save"),
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         var assertion = Assert.IsType<AssertionResult>(result.Data);
         Assert.True(assertion.Passed);
@@ -55,7 +55,7 @@ public sealed class TraceAndAssertionToolTests
             new ElementSelectorMatcher(),
             new ElementSelector(Name: "Save"),
             "Cancel",
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         var assertion = Assert.IsType<AssertionResult>(result.Data);
         Assert.False(assertion.Passed);

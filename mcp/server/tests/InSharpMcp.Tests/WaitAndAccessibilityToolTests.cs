@@ -20,7 +20,7 @@ public sealed class WaitAndAccessibilityToolTests
             new ElementSelectorMatcher(),
             new ElementSelector(Name: "Ready"),
             timeoutMs: 10_000,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
     }
@@ -36,7 +36,7 @@ public sealed class WaitAndAccessibilityToolTests
             router,
             new ToolLimitPolicyEvaluator(),
             maxNodes: 4,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal(4, provider.LastLimits?.MaxNodes);

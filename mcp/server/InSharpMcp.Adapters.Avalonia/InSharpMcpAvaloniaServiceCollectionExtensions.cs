@@ -28,12 +28,16 @@ public static class InSharpMcpAvaloniaServiceCollectionExtensions
                 ?? throw new InvalidOperationException("The Avalonia window content root must be a Control.");
             return new AvaloniaScreenshotProvider(root, provider.GetRequiredService<IUiDispatcher>());
         });
-        services.AddSingleton<IPointerInputSimulator>(provider =>
+        services.AddSingleton<AvaloniaPointerInputSimulator>(provider =>
         {
             var root = window.Content as Control
                 ?? throw new InvalidOperationException("The Avalonia window content root must be a Control.");
             return new AvaloniaPointerInputSimulator(root, provider.GetRequiredService<IUiDispatcher>());
         });
+        services.AddSingleton<IPointerInputSimulator>(provider =>
+            provider.GetRequiredService<AvaloniaPointerInputSimulator>());
+        services.AddSingleton<IElementClickSimulator>(provider =>
+            provider.GetRequiredService<AvaloniaPointerInputSimulator>());
         services.AddSingleton<IAutomationPeerInvoker>(provider =>
         {
             var root = window.Content as Control

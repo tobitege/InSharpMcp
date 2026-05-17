@@ -18,12 +18,12 @@ public sealed class ConcurrentCallGateTests
                     return ToolResult.Ok("done");
                 }),
             TimeSpan.FromMilliseconds(50),
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         var blocked = await gate.RunAsync(
             _ => Task.FromResult(ToolResult.Ok("unexpected")),
             TimeSpan.FromMilliseconds(10),
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         release.Set();
         await running;

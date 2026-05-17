@@ -20,8 +20,12 @@ public static class InSharpMcpWinFormsServiceCollectionExtensions
             new WinFormsAppProvider(form, provider.GetRequiredService<IUiDispatcher>(), appName, appVersion, platformTarget));
         services.AddSingleton<IScreenshotProvider>(provider =>
             new WinFormsScreenshotProvider(form, provider.GetRequiredService<IUiDispatcher>()));
-        services.AddSingleton<IPointerInputSimulator>(provider =>
+        services.AddSingleton<WinFormsPointerInputSimulator>(provider =>
             new WinFormsPointerInputSimulator(form, provider.GetRequiredService<IUiDispatcher>()));
+        services.AddSingleton<IPointerInputSimulator>(provider =>
+            provider.GetRequiredService<WinFormsPointerInputSimulator>());
+        services.AddSingleton<IElementClickSimulator>(provider =>
+            provider.GetRequiredService<WinFormsPointerInputSimulator>());
         services.AddSingleton<IAutomationPeerInvoker>(provider =>
             new WinFormsAutomationPeerInvoker(form, provider.GetRequiredService<IUiDispatcher>()));
         services.AddSingleton<IElementPropertyEditor>(provider =>

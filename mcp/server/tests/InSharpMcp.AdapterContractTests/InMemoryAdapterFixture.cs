@@ -12,6 +12,8 @@ internal sealed class InMemoryAdapterFixture
 
     public IPointerInputSimulator PointerInput { get; } = new InMemoryPointerInputSimulator();
 
+    public IElementClickSimulator ElementClick { get; } = new InMemoryElementClickSimulator();
+
     public IAutomationPeerInvoker AutomationPeerInvoker { get; } = new InMemoryAutomationPeerInvoker();
 }
 
@@ -51,7 +53,8 @@ internal sealed class InMemoryUiTreeInspector : IUiTreeInspector
                     Text: "Save",
                     Role: "button",
                     IsVisible: true,
-                    IsEnabled: true),
+                    IsEnabled: true,
+                    Bounds: new UiElementBounds(10, 10, 80, 30)),
                 new(
                     "notes-input",
                     "TextBox",
@@ -60,8 +63,10 @@ internal sealed class InMemoryUiTreeInspector : IUiTreeInspector
                     Text: "Initial notes",
                     Role: "textbox",
                     IsVisible: true,
-                    IsEnabled: true),
-            ]);
+                    IsEnabled: true,
+                    Bounds: new UiElementBounds(10, 50, 160, 30)),
+            ],
+            Bounds: new UiElementBounds(0, 0, 200, 120));
 
     public Task<ToolResult> GetVisualTreeSnapshotAsync(ToolLimits limits, CancellationToken cancellationToken)
     {
@@ -95,7 +100,8 @@ internal sealed class InMemoryUiTreeInspector : IUiTreeInspector
             Trim(match.Text, limits.MaxTextCharacters),
             match.Role,
             match.IsVisible,
-            match.IsEnabled);
+            match.IsEnabled,
+            match.Bounds);
         return Task.FromResult(ToolResult.Ok("Element metadata returned.", metadata));
     }
 
@@ -203,6 +209,17 @@ internal sealed class InMemoryPointerInputSimulator : IPointerInputSimulator
         return text.Length > 1024
             ? Task.FromResult(ToolResult.Fail("Text is too long.", "text_too_long"))
             : Task.FromResult(ToolResult.Ok("Text accepted."));
+    }
+}
+
+internal sealed class InMemoryElementClickSimulator : IElementClickSimulator
+{
+    public Task<ToolResult> ElementClickAsync(string elementIdentifier, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return string.Equals(elementIdentifier, "save-button", StringComparison.Ordinal)
+            ? Task.FromResult(ToolResult.Ok("Element click accepted."))
+            : Task.FromResult(ToolResult.Fail("Element was not found.", "not_found"));
     }
 }
 

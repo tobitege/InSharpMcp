@@ -306,6 +306,33 @@ public sealed class InSharpMcpTools
             cancellationToken);
     }
 
+    [McpServerTool(Name = "ism_element_click", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
+    [Description("Click the center of an element resolved by adapter element identifier. The adapter verifies that the computed point is inside both the element and selected root/client area before sending native input.")]
+    public static Task<ToolResult> ElementClick(
+        AppInstanceRouter router,
+        string elementIdentifier,
+        AppTargetSelector? target = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(elementIdentifier))
+        {
+            return Task.FromResult(ToolResult.Fail("Element identifier is required.", "invalid_element_identifier"));
+        }
+
+        var route = router.Select(target);
+        if (!route.Succeeded)
+        {
+            return Task.FromResult(route.Error!);
+        }
+
+        return RunRecordedToolAsync(
+            route,
+            "ism_element_click",
+            "interaction",
+            (client, token) => client.ElementClickAsync(elementIdentifier, token),
+            cancellationToken);
+    }
+
     [McpServerTool(Name = "ism_key_press", ReadOnly = false, Destructive = true, Idempotent = false, OpenWorld = false)]
     public static Task<ToolResult> KeyPress(
         AppInstanceRouter router,

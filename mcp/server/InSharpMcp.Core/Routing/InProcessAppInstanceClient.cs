@@ -11,6 +11,7 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
     private readonly IScreenshotProvider _screenshotProvider;
     private readonly IAccessibilityTreeProvider _accessibilityTreeProvider;
     private readonly IPointerInputSimulator _inputSimulator;
+    private readonly IElementClickSimulator _elementClickSimulator;
     private readonly IAutomationPeerInvoker _automationPeerInvoker;
     private readonly IElementPropertyEditor _propertyEditor;
     private readonly IAppProvider _appProvider;
@@ -26,12 +27,14 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
         IAppProvider appProvider,
         IUiOperationQueue uiQueue,
         IEventLogProvider eventLog,
-        ITraceStore traceStore)
+        ITraceStore traceStore,
+        IElementClickSimulator? elementClickSimulator = null)
     {
         _treeInspector = treeInspector;
         _screenshotProvider = screenshotProvider;
         _accessibilityTreeProvider = accessibilityTreeProvider;
         _inputSimulator = inputSimulator;
+        _elementClickSimulator = elementClickSimulator ?? UnsupportedElementClickSimulator.Instance;
         _automationPeerInvoker = automationPeerInvoker;
         _propertyEditor = propertyEditor;
         _appProvider = appProvider;
@@ -108,6 +111,13 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
             new ToolLimits(),
             cancellationToken);
 
+    public Task<ToolResult> ElementClickAsync(string elementIdentifier, CancellationToken cancellationToken) =>
+        RunUiAsync(
+            LocalAppOperation.ElementClick,
+            token => _elementClickSimulator.ElementClickAsync(elementIdentifier, token),
+            new ToolLimits(),
+            cancellationToken);
+
     public Task<ToolResult> KeyPressAsync(
         string key,
         IReadOnlyList<string> modifiers,
@@ -163,4 +173,16 @@ public sealed class InProcessAppInstanceClient : IAppInstanceClient
         ToolLimits limits,
         CancellationToken cancellationToken) =>
         _uiQueue.RunAsync(operationName, operation, limits, cancellationToken);
+
+    private sealed class UnsupportedElementClickSimulator : IElementClickSimulator
+    {
+        public static readonly UnsupportedElementClickSimulator Instance = new();
+
+        public Task<ToolResult> ElementClickAsync(string elementIdentifier, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = elementIdentifier;
+            return Task.FromResult(ToolResult.Fail("Element click is unsupported by this adapter.", "unsupported"));
+        }
+    }
 }

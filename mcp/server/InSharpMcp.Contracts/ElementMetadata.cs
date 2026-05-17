@@ -8,4 +8,5 @@ public sealed record ElementMetadata(
     string? Text = null,
     string? Role = null,
     bool? IsVisible = null,
-    bool? IsEnabled = null);
+    bool? IsEnabled = null,
+    UiElementBounds? Bounds = null);

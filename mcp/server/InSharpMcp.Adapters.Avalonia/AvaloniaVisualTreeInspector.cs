@@ -25,7 +25,7 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
                 token.ThrowIfCancellationRequested();
                 var budget = new NodeVisitBudget(limits.MaxNodes);
                 var truncated = false;
-                var rootNode = CopyBounded(_root, "0", currentDepth: 1, limits, budget, ref truncated);
+                var rootNode = CopyBounded(_root, _root, "0", currentDepth: 1, limits, budget, ref truncated);
                 var snapshot = new UiTreeSnapshot(rootNode!, budget.VisitedNodes, truncated);
                 return ToolResult.Ok("Visual tree snapshot returned.", snapshot);
             },
@@ -45,7 +45,7 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
                     return ToolResult.Fail("Element was not found.", "not_found");
                 }
 
-                return ToolResult.Ok("Element metadata returned.", CreateMetadata(match.Value.Element, match.Value.Identifier, limits));
+                return ToolResult.Ok("Element metadata returned.", CreateMetadata(_root, match.Value.Element, match.Value.Identifier, limits));
             },
             cancellationToken);
 
@@ -75,6 +75,7 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
             cancellationToken);
 
     private static UiElementNode? CopyBounded(
+        Visual root,
         Visual element,
         string identifier,
         int currentDepth,
@@ -96,13 +97,14 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
                 truncated = true;
             }
 
-            return CreateNode(element, identifier, limits, Array.Empty<UiElementNode>());
+            return CreateNode(root, element, identifier, limits, Array.Empty<UiElementNode>());
         }
 
         var copiedChildren = new List<UiElementNode>();
         for (var index = 0; index < children.Length; index++)
         {
             var copied = CopyBounded(
+                root,
                 children[index],
                 $"{identifier}/{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
                 currentDepth + 1,
@@ -115,7 +117,7 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
             }
         }
 
-        return CreateNode(element, identifier, limits, copiedChildren);
+        return CreateNode(root, element, identifier, limits, copiedChildren);
     }
 
     internal static (Visual Element, string Identifier)? Find(
@@ -147,12 +149,13 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
     }
 
     private static UiElementNode CreateNode(
+        Visual root,
         Visual element,
         string identifier,
         ToolLimits limits,
         IReadOnlyList<UiElementNode> children)
     {
-        var metadata = CreateMetadata(element, identifier, limits);
+        var metadata = CreateMetadata(root, element, identifier, limits);
         return new UiElementNode(
             metadata.ElementIdentifier,
             metadata.Type,
@@ -162,10 +165,11 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
             metadata.Role,
             metadata.IsVisible,
             metadata.IsEnabled,
-            children);
+            children,
+            metadata.Bounds);
     }
 
-    private static ElementMetadata CreateMetadata(Visual element, string identifier, ToolLimits limits)
+    internal static ElementMetadata CreateMetadata(Visual root, Visual element, string identifier, ToolLimits limits)
     {
         var control = element as Control;
         var name = control?.Name;
@@ -185,7 +189,58 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
             text,
             control is null ? null : element.GetType().Name,
             control?.IsVisible,
-            control?.IsEnabled);
+            control?.IsEnabled,
+            GetBounds(root, element));
+    }
+
+    internal static UiElementBounds? GetBounds(Visual root, Visual element)
+    {
+        var bounds = element.Bounds;
+        var topLeft = element == root
+            ? new Point(0, 0)
+            : element.TranslatePoint(new Point(0, 0), root);
+        return topLeft is { } point
+            ? new UiElementBounds(point.X, point.Y, bounds.Width, bounds.Height)
+            : null;
+    }
+
+    internal static bool TryGetVisibleBounds(Visual root, Visual element, out UiElementBounds bounds)
+    {
+        if (GetBounds(root, element) is not { Width: > 0, Height: > 0 } elementBounds)
+        {
+            bounds = new UiElementBounds(0, 0, 0, 0);
+            return false;
+        }
+
+        var visible = new Rect(elementBounds.X, elementBounds.Y, elementBounds.Width, elementBounds.Height);
+        for (var current = element.GetVisualParent() as Visual; current is not null; current = current.GetVisualParent() as Visual)
+        {
+            if (GetBounds(root, current) is not { Width: > 0, Height: > 0 } currentBounds)
+            {
+                bounds = new UiElementBounds(0, 0, 0, 0);
+                return false;
+            }
+
+            if (current == root || current.ClipToBounds || current.Clip is not null)
+            {
+                var clip = new Rect(currentBounds.X, currentBounds.Y, currentBounds.Width, currentBounds.Height);
+                visible = visible.Intersect(clip);
+                if (visible.Width <= 0 || visible.Height <= 0)
+                {
+                    bounds = new UiElementBounds(0, 0, 0, 0);
+                    return false;
+                }
+            }
+
+            if (current == root)
+            {
+                bounds = new UiElementBounds(visible.X, visible.Y, visible.Width, visible.Height);
+                return true;
+            }
+        }
+
+        bounds = new UiElementBounds(0, 0, 0, 0);
+        return false;
     }
 
     private static string? GetText(Visual element) =>

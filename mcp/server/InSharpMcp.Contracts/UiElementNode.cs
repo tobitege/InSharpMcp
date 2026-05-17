@@ -9,4 +9,5 @@ public sealed record UiElementNode(
     string? Role = null,
     bool? IsVisible = null,
     bool? IsEnabled = null,
-    IReadOnlyList<UiElementNode>? Children = null);
+    IReadOnlyList<UiElementNode>? Children = null,
+    UiElementBounds? Bounds = null);

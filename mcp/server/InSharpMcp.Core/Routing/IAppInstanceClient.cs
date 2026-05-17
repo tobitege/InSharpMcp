@@ -27,6 +27,8 @@ public interface IAppInstanceClient
 
     Task<ToolResult> PointerClickAsync(double x, double y, CancellationToken cancellationToken);
 
+    Task<ToolResult> ElementClickAsync(string elementIdentifier, CancellationToken cancellationToken);
+
     Task<ToolResult> KeyPressAsync(
         string key,
         IReadOnlyList<string> modifiers,

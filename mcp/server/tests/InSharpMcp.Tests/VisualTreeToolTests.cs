@@ -20,7 +20,7 @@ public sealed class VisualTreeToolTests
             policy,
             maxDepth: 999,
             maxNodes: 999999,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal(50, inspector.LastLimits?.MaxDepth);
@@ -40,7 +40,7 @@ public sealed class VisualTreeToolTests
             policy,
             "root",
             maxTextCharacters: 10,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal(1_024, inspector.LastLimits?.MaxTextCharacters);
@@ -61,7 +61,7 @@ public sealed class VisualTreeToolTests
             "root",
             maxNodes: 2,
             maxTextCharacters: 2048,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal(2, inspector.LastLimits?.MaxNodes);
@@ -78,7 +78,7 @@ public sealed class VisualTreeToolTests
 
         var result = await InSharpMcpTools.GetScreenshot(
             router,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.True(result.Success);
         Assert.Equal([0x89, 0x50, 0x4E, 0x47], result.PngBytes);

@@ -40,6 +40,7 @@ internal static class ToolRoutingFixture
         IScreenshotProvider? screenshotProvider = null,
         IAccessibilityTreeProvider? accessibilityTreeProvider = null,
         IPointerInputSimulator? inputSimulator = null,
+        IElementClickSimulator? elementClickSimulator = null,
         IAutomationPeerInvoker? automationPeerInvoker = null,
         IElementPropertyEditor? propertyEditor = null,
         IAppProvider? appProvider = null,
@@ -56,7 +57,8 @@ internal static class ToolRoutingFixture
             appProvider ?? new NoopAppProvider(),
             uiQueue ?? new UiOperationQueue(),
             eventLog ?? new BoundedEventLog(),
-            traceStore ?? new BoundedTraceStore());
+            traceStore ?? new BoundedTraceStore(),
+            elementClickSimulator);
 
     public static AppInstanceDescriptor CreateDescriptor(string instanceId, string appId = "sample-app") =>
         new(

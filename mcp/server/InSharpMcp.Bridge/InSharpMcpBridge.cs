@@ -14,6 +14,7 @@ public sealed class InSharpMcpBridge : IAsyncDisposable, IDisposable
     private readonly IScreenshotProvider _screenshotProvider;
     private readonly IAccessibilityTreeProvider _accessibilityTreeProvider;
     private readonly IPointerInputSimulator _inputSimulator;
+    private readonly IElementClickSimulator _elementClickSimulator;
     private readonly IAutomationPeerInvoker _automationPeerInvoker;
     private readonly IElementPropertyEditor _propertyEditor;
     private readonly IAppProvider _appProvider;
@@ -32,12 +33,14 @@ public sealed class InSharpMcpBridge : IAsyncDisposable, IDisposable
         IAutomationPeerInvoker automationPeerInvoker,
         IAppProvider appProvider,
         LocalBridgeOptions? options = null,
-        IElementPropertyEditor? propertyEditor = null)
+        IElementPropertyEditor? propertyEditor = null,
+        IElementClickSimulator? elementClickSimulator = null)
     {
         _treeInspector = treeInspector;
         _screenshotProvider = screenshotProvider;
         _accessibilityTreeProvider = accessibilityTreeProvider;
         _inputSimulator = inputSimulator;
+        _elementClickSimulator = elementClickSimulator ?? UnsupportedElementClickSimulator.Instance;
         _automationPeerInvoker = automationPeerInvoker;
         _propertyEditor = propertyEditor ?? UnsupportedElementPropertyEditor.Instance;
         _appProvider = appProvider;
@@ -286,6 +289,7 @@ public sealed class InSharpMcpBridge : IAsyncDisposable, IDisposable
             LocalAppOperation.GetScreenshot => CaptureScreenshotAsync(cancellationToken),
             LocalAppOperation.GetAccessibilityTree => _accessibilityTreeProvider.GetAccessibilityTreeAsync(limits, cancellationToken),
             LocalAppOperation.PointerClick => _inputSimulator.PointerClickAsync(request.X ?? 0, request.Y ?? 0, cancellationToken),
+            LocalAppOperation.ElementClick => _elementClickSimulator.ElementClickAsync(Required(request.ElementIdentifier), cancellationToken),
             LocalAppOperation.KeyPress => _inputSimulator.KeyPressAsync(Required(request.Key), request.Modifiers ?? Array.Empty<string>(), cancellationToken),
             LocalAppOperation.TypeText => _inputSimulator.TypeTextAsync(Required(request.Text), cancellationToken),
             LocalAppOperation.ElementPeerDefaultAction => _automationPeerInvoker.InvokeDefaultActionAsync(Required(request.ElementIdentifier), cancellationToken),
@@ -335,6 +339,18 @@ public sealed class InSharpMcpBridge : IAsyncDisposable, IDisposable
             _ = value;
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(ToolResult.Fail("Element property editing is unsupported by this adapter.", "unsupported"));
+        }
+    }
+
+    private sealed class UnsupportedElementClickSimulator : IElementClickSimulator
+    {
+        public static readonly UnsupportedElementClickSimulator Instance = new();
+
+        public Task<ToolResult> ElementClickAsync(string elementIdentifier, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            _ = elementIdentifier;
+            return Task.FromResult(ToolResult.Fail("Element click is unsupported by this adapter.", "unsupported"));
         }
     }
 }

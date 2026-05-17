@@ -71,6 +71,12 @@ internal sealed class RemoteAppInstanceClient : IAppInstanceClient
             dataType: null,
             cancellationToken);
 
+    public Task<ToolResult> ElementClickAsync(string elementIdentifier, CancellationToken cancellationToken) =>
+        SendToolAsync(
+            new LocalAppRequest(LocalAppOperation.ElementClick, ElementIdentifier: elementIdentifier),
+            dataType: null,
+            cancellationToken);
+
     public Task<ToolResult> KeyPressAsync(
         string key,
         IReadOnlyList<string> modifiers,

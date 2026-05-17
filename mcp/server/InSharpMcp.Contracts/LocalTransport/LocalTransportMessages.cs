@@ -17,6 +17,7 @@ public static class LocalAppOperation
     public const string GetScreenshot = "get_screenshot";
     public const string GetAccessibilityTree = "get_accessibility_tree";
     public const string PointerClick = "pointer_click";
+    public const string ElementClick = "element_click";
     public const string KeyPress = "key_press";
     public const string TypeText = "type_text";
     public const string ElementPeerDefaultAction = "element_peer_default_action";

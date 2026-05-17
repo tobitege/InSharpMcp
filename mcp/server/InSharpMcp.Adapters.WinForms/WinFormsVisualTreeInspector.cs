@@ -21,7 +21,7 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
                 token.ThrowIfCancellationRequested();
                 var budget = new NodeVisitBudget(limits.MaxNodes);
                 var truncated = false;
-                var rootNode = CopyBounded(_root, "0", currentDepth: 1, limits, budget, ref truncated);
+                var rootNode = CopyBounded(_root, _root, "0", currentDepth: 1, limits, budget, ref truncated);
                 var snapshot = new UiTreeSnapshot(rootNode!, budget.VisitedNodes, truncated);
                 return ToolResult.Ok("Visual tree snapshot returned.", snapshot);
             },
@@ -41,7 +41,7 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
                     return ToolResult.Fail("Element was not found.", "not_found");
                 }
 
-                return ToolResult.Ok("Element metadata returned.", CreateMetadata(match.Value.Element, match.Value.Identifier, limits));
+                return ToolResult.Ok("Element metadata returned.", CreateMetadata(_root, match.Value.Element, match.Value.Identifier, limits));
             },
             cancellationToken);
 
@@ -98,6 +98,7 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
     }
 
     private static UiElementNode? CopyBounded(
+        Control root,
         Control element,
         string identifier,
         int currentDepth,
@@ -118,13 +119,14 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
                 truncated = true;
             }
 
-            return CreateNode(element, identifier, limits, Array.Empty<UiElementNode>());
+            return CreateNode(root, element, identifier, limits, Array.Empty<UiElementNode>());
         }
 
         var children = new List<UiElementNode>();
         for (var index = 0; index < element.Controls.Count; index++)
         {
             var copied = CopyBounded(
+                root,
                 element.Controls[index],
                 $"{identifier}/{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
                 currentDepth + 1,
@@ -137,16 +139,17 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
             }
         }
 
-        return CreateNode(element, identifier, limits, children);
+        return CreateNode(root, element, identifier, limits, children);
     }
 
     private static UiElementNode CreateNode(
+        Control root,
         Control element,
         string identifier,
         ToolLimits limits,
         IReadOnlyList<UiElementNode> children)
     {
-        var metadata = CreateMetadata(element, identifier, limits);
+        var metadata = CreateMetadata(root, element, identifier, limits);
         return new UiElementNode(
             metadata.ElementIdentifier,
             metadata.Type,
@@ -156,10 +159,11 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
             metadata.Role,
             metadata.IsVisible,
             metadata.IsEnabled,
-            children);
+            children,
+            metadata.Bounds);
     }
 
-    private static ElementMetadata CreateMetadata(Control element, string identifier, ToolLimits limits)
+    internal static ElementMetadata CreateMetadata(Control root, Control element, string identifier, ToolLimits limits)
     {
         var text = string.IsNullOrWhiteSpace(element.Text) ? null : element.Text;
         if (text is { Length: > 0 } && text.Length > limits.MaxTextCharacters)
@@ -179,7 +183,60 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
             text,
             accessibleRole,
             element.Visible,
-            element.Enabled);
+            element.Enabled,
+            GetBounds(root, element));
+    }
+
+    internal static UiElementBounds GetBounds(Control root, Control element)
+    {
+        var rectangle = GetRootRelativeRectangle(root, element, element.ClientRectangle);
+        return new UiElementBounds(rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height);
+    }
+
+    internal static bool TryGetVisibleBounds(Control root, Control element, out UiElementBounds bounds)
+    {
+        if (element.Width <= 0 || element.Height <= 0)
+        {
+            bounds = new UiElementBounds(0, 0, 0, 0);
+            return false;
+        }
+
+        var visible = GetRootRelativeRectangle(root, element, element.ClientRectangle);
+        for (var current = element.Parent; current is not null; current = current.Parent)
+        {
+            var clip = GetRootRelativeRectangle(root, current, current.ClientRectangle);
+            visible = System.Drawing.Rectangle.Intersect(visible, clip);
+            if (visible.Width <= 0 || visible.Height <= 0)
+            {
+                bounds = new UiElementBounds(0, 0, 0, 0);
+                return false;
+            }
+
+            if (current == root)
+            {
+                bounds = new UiElementBounds(visible.X, visible.Y, visible.Width, visible.Height);
+                return true;
+            }
+        }
+
+        bounds = new UiElementBounds(0, 0, 0, 0);
+        return false;
+    }
+
+    private static System.Drawing.Rectangle GetRootRelativeRectangle(
+        Control root,
+        Control element,
+        System.Drawing.Rectangle clientRectangle)
+    {
+        var topLeft = root.PointToClient(element.PointToScreen(clientRectangle.Location));
+        var bottomRight = root.PointToClient(element.PointToScreen(new System.Drawing.Point(
+            clientRectangle.Right,
+            clientRectangle.Bottom)));
+        return System.Drawing.Rectangle.FromLTRB(
+            Math.Min(topLeft.X, bottomRight.X),
+            Math.Min(topLeft.Y, bottomRight.Y),
+            Math.Max(topLeft.X, bottomRight.X),
+            Math.Max(topLeft.Y, bottomRight.Y));
     }
 
     private static string? FirstNonWhiteSpace(string? first, string? second)
