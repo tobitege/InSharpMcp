@@ -179,7 +179,7 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
             identifier,
             element.GetType().Name,
             FirstNonWhiteSpace(element.Name, element.AccessibleName),
-            string.IsNullOrWhiteSpace(element.AccessibleName) ? null : element.AccessibleName,
+            string.IsNullOrWhiteSpace(element.Name) ? null : element.Name,
             text,
             accessibleRole,
             element.Visible,
@@ -202,6 +202,12 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
         }
 
         var visible = GetRootRelativeRectangle(root, element, element.ClientRectangle);
+        if (element == root)
+        {
+            bounds = new UiElementBounds(visible.X, visible.Y, visible.Width, visible.Height);
+            return true;
+        }
+
         for (var current = element.Parent; current is not null; current = current.Parent)
         {
             var clip = GetRootRelativeRectangle(root, current, current.ClientRectangle);

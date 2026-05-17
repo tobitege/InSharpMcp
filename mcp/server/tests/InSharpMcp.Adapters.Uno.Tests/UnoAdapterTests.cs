@@ -130,6 +130,41 @@ public sealed class UnoAdapterTests : IClassFixture<UnoRuntimeFixture>
         Assert.Equal("Item 550", metadata.Text);
     }
 
+    [Fact]
+    public async Task ElementClick_RejectsNonHitTestVisibleControl()
+    {
+        var result = await _fixture.Dispatcher.RunAsync(
+            async token =>
+            {
+                var previousContent = _fixture.Window.Content;
+                try
+                {
+                    var root = new Grid { Width = 200, Height = 100 };
+                    var button = new Button
+                    {
+                        Content = "Ignored",
+                        Width = 100,
+                        Height = 40,
+                        IsHitTestVisible = false,
+                    };
+                    root.Children.Add(button);
+                    Layout(root, 200, 100);
+                    _fixture.Window.Content = root;
+
+                    var simulator = new UnoPointerInputSimulator(_fixture.Window, _fixture.Dispatcher);
+                    return await simulator.ElementClickAsync("0/0", token);
+                }
+                finally
+                {
+                    _fixture.Window.Content = previousContent;
+                }
+            },
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Success);
+        Assert.Equal("not_clickable", result.ErrorCode);
+    }
+
     private static void Layout(FrameworkElement element, double width, double height)
     {
         element.Measure(new Size(width, height));
@@ -181,6 +216,9 @@ public sealed class UnoRuntimeFixture : IAsyncLifetime
 
     public IUiDispatcher Dispatcher =>
         _state?.Dispatcher ?? throw new InvalidOperationException("The Uno runtime has not started.");
+
+    public Window Window =>
+        _state?.Window ?? throw new InvalidOperationException("The Uno runtime has not started.");
 
     public async ValueTask InitializeAsync()
     {

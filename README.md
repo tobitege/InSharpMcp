@@ -68,7 +68,7 @@ The repository includes xUnit test projects for the broker, shared adapter contr
 The server code lives under `mcp/server`.
 
 | Path | Purpose |
-|------|---------|
+| --- | --- |
 | `mcp/server/InSharpMcp.Contracts` | Shared result models, limit models, selectors, screenshots, traces, assertions, and adapter interfaces. |
 | `mcp/server/InSharpMcp.Core` | Reusable MCP core library: routing, registry, security, limits, event log, trace store, selectors, assertions, transports, and `ism_` tools. |
 | `mcp/server/InSharpMcp.Broker` | Main MCP broker process used by IDEs, MCP clients, and other third-party integrations. |
@@ -319,7 +319,7 @@ WinForms hosts use `AddInSharpMcpWinFormsAdapter(form, ...)`.
 The adapters share the same contract shape, but platform support is intentionally honest.
 
 | Adapter | Implemented |
-|---------|-------------|
+| --- | --- |
 | Uno | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, Windows screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed `ButtonBase` default action invocation, and public property editing for elements and direct DataContext objects. |
 | Avalonia | UI dispatch, app info/close, bounded visual tree, element metadata, DataContext metadata, screenshot capture for measured controls, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, command-backed default action invocation through `ICommandSource`, and public property editing for elements and direct DataContext objects. |
 | WinForms | UI dispatch, app info/close, bounded control tree, element metadata, Tag-based DataContext metadata, `DrawToBitmap` screenshot capture, inspectable tree metadata with accessibility fields where available, Windows pointer/key/text input through native input APIs, default action invocation for `IButtonControl`, and public property editing for controls and Tag-based DataContext objects. |
@@ -487,7 +487,7 @@ Element identifiers are handles for the current UI tree shape, not stable applic
 The tool surface uses the `ism_` prefix.
 
 | Tool | Use it for |
-|------|------------|
+| --- | --- |
 | `ism_list_instances` | List registered app instances and their capabilities. |
 | `ism_get_runtime_info` | Read PID, OS, platform target, app name, and app version for the selected instance. |
 | `ism_visualtree_snapshot` | Get a bounded visual or control tree snapshot. |
@@ -545,7 +545,8 @@ The existing tests cover routing, target ambiguity, stale instances, local broke
 
 The included Bridge provides a local named-pipe app-to-broker transport for desktop apps on the same machine. Production hosts can use it directly or replace it with a custom transport if they need a different discovery, authentication, or deployment model.
 
-Uno Desktop/Skia screenshot and pointer-click paths are intentionally unsupported until validated backend-specific implementations exist. Keyboard/text input uses native Windows input where available. Default action invocation is limited to public command/button patterns: Uno `ButtonBase.Command`, Avalonia `ICommandSource.Command`, and WinForms `IButtonControl.PerformClick()`.
+Uno Desktop/Skia screenshots remain unsupported until a validated backend-specific implementation exists. Uno pointer clicks require a native Windows window handle and return `unsupported` when one is not available.  
+Keyboard/text input uses native Windows input where available. Default action invocation is limited to public command/button patterns: Uno `ButtonBase.Command`, Avalonia `ICommandSource.Command`, and WinForms `IButtonControl.PerformClick()`.
 
 The file `plans/ADAPTER_VALIDATION.md` records the current adapter validation status and remaining structured unsupported paths.
 

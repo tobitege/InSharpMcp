@@ -231,6 +231,12 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
         }
 
         var visible = new Rect(elementBounds.X, elementBounds.Y, elementBounds.Width, elementBounds.Height);
+        if (element == root)
+        {
+            bounds = new UiElementBounds(visible.X, visible.Y, visible.Width, visible.Height);
+            return true;
+        }
+
         for (var current = VisualTreeHelper.GetParent(element); current is not null; current = VisualTreeHelper.GetParent(current))
         {
             if (current is FrameworkElement { Visibility: not Visibility.Visible })

@@ -48,6 +48,42 @@ public sealed class AvaloniaAdapterTests
     }
 
     [AvaloniaFact]
+    public async Task ElementClick_ClicksRootControlCenter()
+    {
+        var button = new Button
+        {
+            Width = 100,
+            Height = 40,
+            Background = Brushes.Transparent,
+        };
+        var window = new Window
+        {
+            Width = 100,
+            Height = 40,
+            Content = button,
+        };
+        try
+        {
+            window.Show();
+            await WaitForHeadlessWindowAsync();
+            var input = new RecordingAvaloniaInputInjector();
+            var simulator = new AvaloniaPointerInputSimulator(button, new ImmediateDispatcher(), input);
+
+            var result = await simulator.ElementClickAsync("0", TestContext.Current.CancellationToken);
+
+            Assert.True(result.Success, $"{result.ErrorCode}: {result.Message}");
+            Assert.True(input.PointerClicked);
+            var expected = button.PointToScreen(new Point(50, 20));
+            Assert.Equal(expected.X, input.ScreenX);
+            Assert.Equal(expected.Y, input.ScreenY);
+        }
+        finally
+        {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public async Task ElementClick_ClicksNestedTranslatedControlCenter()
     {
         var root = new Canvas

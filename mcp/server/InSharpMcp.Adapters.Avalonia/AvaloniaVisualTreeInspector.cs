@@ -213,6 +213,12 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
         }
 
         var visible = new Rect(elementBounds.X, elementBounds.Y, elementBounds.Width, elementBounds.Height);
+        if (element == root)
+        {
+            bounds = new UiElementBounds(visible.X, visible.Y, visible.Width, visible.Height);
+            return true;
+        }
+
         for (var current = element.GetVisualParent() as Visual; current is not null; current = current.GetVisualParent() as Visual)
         {
             if (GetBounds(root, current) is not { Width: > 0, Height: > 0 } currentBounds)

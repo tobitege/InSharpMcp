@@ -162,7 +162,8 @@ public sealed class UnoPointerInputSimulator : IPointerInputSimulator, IElementC
 
     private static bool CanClick(DependencyObject element) =>
         element is FrameworkElement { Visibility: Visibility.Visible }
-        && element is not Control { IsEnabled: false };
+        && element is not Control { IsEnabled: false }
+        && element is not UIElement { IsHitTestVisible: false };
 
     private static bool HitsElementOrDescendant(UIElement root, DependencyObject element, Point rootPoint)
     {

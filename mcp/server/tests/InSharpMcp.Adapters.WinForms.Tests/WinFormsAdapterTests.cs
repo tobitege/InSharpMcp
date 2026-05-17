@@ -33,7 +33,7 @@ public sealed class WinFormsAdapterTests
             Assert.True(metadataResult.Success);
             var metadata = Assert.IsType<ElementMetadata>(metadataResult.Data);
             Assert.Equal("PrimaryActionButton", metadata.Name);
-            Assert.Equal("Primary action", metadata.AutomationId);
+            Assert.Equal("PrimaryActionButton", metadata.AutomationId);
             Assert.Equal("Primary action", metadata.Text);
         });
 
@@ -206,6 +206,25 @@ public sealed class WinFormsAdapterTests
             Assert.Equal(expected.Y, metadata.Bounds?.Y);
             Assert.Equal(button.Width, metadata.Bounds?.Width);
             Assert.Equal(button.Height, metadata.Bounds?.Height);
+        });
+
+    [Fact]
+    public Task ElementClick_ClicksRootClientCenter() =>
+        RunStaAsync(async () =>
+        {
+            using var form = CreateForm();
+            form.Show();
+            Application.DoEvents();
+            var dispatcher = new WinFormsUiDispatcher(form);
+            var input = new RecordingWinFormsInputInjector();
+            var simulator = new WinFormsPointerInputSimulator(form, dispatcher, input);
+
+            var result = await simulator.ElementClickAsync("0", TestContext.Current.CancellationToken);
+
+            Assert.True(result.Success, $"{result.ErrorCode}: {result.Message}");
+            var expected = form.PointToScreen(new System.Drawing.Point(form.ClientSize.Width / 2, form.ClientSize.Height / 2));
+            Assert.Equal(expected.X, input.ScreenX);
+            Assert.Equal(expected.Y, input.ScreenY);
         });
 
     [Fact]
