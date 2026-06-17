@@ -89,10 +89,9 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
             return null;
         }
 
-        var children = element.GetVisualChildren().OfType<Visual>().ToArray();
-        if (currentDepth >= limits.MaxDepth || children.Length == 0)
+        if (currentDepth >= limits.MaxDepth)
         {
-            if (children.Length > 0 && currentDepth >= limits.MaxDepth)
+            if (element.GetVisualChildren().OfType<Visual>().Any())
             {
                 truncated = true;
             }
@@ -101,11 +100,18 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
         }
 
         var copiedChildren = new List<UiElementNode>();
-        for (var index = 0; index < children.Length; index++)
+        var index = 0;
+        foreach (var child in element.GetVisualChildren().OfType<Visual>())
         {
+            if (budget.RemainingNodes <= 0)
+            {
+                truncated = true;
+                break;
+            }
+
             var copied = CopyBounded(
                 root,
-                children[index],
+                child,
                 $"{identifier}/{index.ToString(System.Globalization.CultureInfo.InvariantCulture)}",
                 currentDepth + 1,
                 limits,
@@ -115,6 +121,8 @@ public sealed class AvaloniaVisualTreeInspector : IUiTreeInspector
             {
                 copiedChildren.Add(copied);
             }
+
+            index++;
         }
 
         return CreateNode(root, element, identifier, limits, copiedChildren);

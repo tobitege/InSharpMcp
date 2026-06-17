@@ -103,6 +103,12 @@ public sealed class UnoVisualTreeInspector : IUiTreeInspector
         var children = new List<UiElementNode>();
         for (var index = 0; index < childCount; index++)
         {
+            if (budget.RemainingNodes <= 0)
+            {
+                truncated = true;
+                break;
+            }
+
             var child = VisualTreeHelper.GetChild(element, index);
             var copied = CopyBounded(
                 root,

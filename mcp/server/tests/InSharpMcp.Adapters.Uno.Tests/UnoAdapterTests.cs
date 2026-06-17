@@ -305,6 +305,31 @@ public sealed class UnoRuntimeAdapterTests : IClassFixture<UnoRuntimeFixture>
     }
 
     [Fact]
+    public async Task ElementClick_AppliesRasterizationScaleBeforeClientToScreen()
+    {
+        var injector = new RecordingUnoInputInjector();
+        var result = await WithCanvasButtonContentAsync(
+            async (root, expectedIdentifier) =>
+            {
+                var simulator = new UnoPointerInputSimulator(_fixture.Window, _fixture.Dispatcher, injector, _ => 2);
+                var clickResult = await simulator.ElementClickAsync(expectedIdentifier, TestContext.Current.CancellationToken);
+                var inspector = new UnoVisualTreeInspector(root, _fixture.Dispatcher);
+                var metadataResult = await inspector.GetElementMetadataAsync(
+                    expectedIdentifier,
+                    new ToolLimits(),
+                    TestContext.Current.CancellationToken);
+                var metadata = Assert.IsType<ElementMetadata>(metadataResult.Data);
+                return (clickResult, metadata.Bounds);
+            });
+
+        Assert.True(result.clickResult.Success, result.clickResult.Message);
+        Assert.Equal(1, injector.PointerClickCount);
+        var bounds = Assert.IsType<UiElementBounds>(result.Bounds);
+        Assert.Equal((int)Math.Round((bounds.X + bounds.Width / 2) * 2), injector.LastClientX);
+        Assert.Equal((int)Math.Round((bounds.Y + bounds.Height / 2) * 2), injector.LastClientY);
+    }
+
+    [Fact]
     public async Task ElementClick_RejectsDisabledControlWithoutNativeClick()
     {
         var injector = new RecordingUnoInputInjector();

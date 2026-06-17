@@ -64,10 +64,10 @@ This repository currently contains the broker executable, reusable core broker l
 
 Release builds create these NuGet packages:
 
-- `InSharpMcp` `1.0.0`: `net8.0` base package containing `InSharpMcp.Contracts`, `InSharpMcp.Core`, and `InSharpMcp.Bridge`.
-- `InSharpMcp.Adapters.Uno` `1.0.0`: Uno Platform adapter using `Uno.Sdk/6.5.33`, targeting `net9.0-windows10.0.19041` and `net9.0-desktop`.
-- `InSharpMcp.Adapters.Avalonia` `1.0.0`: Avalonia adapter targeting `net8.0`, with `Avalonia` and `Avalonia.Desktop` pinned to `12.0.3`.
-- `InSharpMcp.Adapters.WinForms` `1.0.0`: WinForms adapter targeting `net8.0-windows`.
+- `InSharpMcp` `1.0.1`: `net8.0` base package containing `InSharpMcp.Contracts`, `InSharpMcp.Core`, and `InSharpMcp.Bridge`.
+- `InSharpMcp.Adapters.Uno` `1.0.1`: Uno Platform adapter using `Uno.Sdk/6.5.33`, targeting `net9.0-windows10.0.19041` and `net9.0-desktop`.
+- `InSharpMcp.Adapters.Avalonia` `1.0.1`: Avalonia adapter targeting `net8.0`, with `Avalonia` and `Avalonia.Desktop` pinned to `12.0.3`.
+- `InSharpMcp.Adapters.WinForms` `1.0.1`: WinForms adapter targeting `net8.0-windows`.
 
 `InSharpMcp.Broker` is distributed separately as the MCP broker executable through the Windows installer.
 

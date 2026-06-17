@@ -11,15 +11,18 @@ public sealed class UnoPointerInputSimulator : IPointerInputSimulator, IElementC
     private readonly Window _window;
     private readonly IUiDispatcher _dispatcher;
     private readonly IUnoInputInjector _inputInjector;
+    private readonly Func<UIElement, double> _rasterizationScaleProvider;
 
     public UnoPointerInputSimulator(
         Window window,
         IUiDispatcher dispatcher,
-        IUnoInputInjector? inputInjector = null)
+        IUnoInputInjector? inputInjector = null,
+        Func<UIElement, double>? rasterizationScaleProvider = null)
     {
         _window = window;
         _dispatcher = dispatcher;
         _inputInjector = inputInjector ?? new UnoWindowsInputInjector();
+        _rasterizationScaleProvider = rasterizationScaleProvider ?? GetRasterizationScale;
     }
 
     public Task<ToolResult> PointerClickAsync(double x, double y, CancellationToken cancellationToken) =>
@@ -121,7 +124,7 @@ public sealed class UnoPointerInputSimulator : IPointerInputSimulator, IElementC
 
         var transform = root.TransformToVisual(null);
         var clientPoint = transform.TransformPoint(new Point(x, y));
-        var scale = root.XamlRoot?.RasterizationScale ?? 1;
+        var scale = _rasterizationScaleProvider(root);
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(_window);
         if (hwnd == IntPtr.Zero)
         {
@@ -139,6 +142,8 @@ public sealed class UnoPointerInputSimulator : IPointerInputSimulator, IElementC
             out screenY,
             out error);
     }
+
+    private static double GetRasterizationScale(UIElement root) => root.XamlRoot?.RasterizationScale ?? 1;
 
     private bool TryGetRoot(out UIElement root, out ToolResult error)
     {

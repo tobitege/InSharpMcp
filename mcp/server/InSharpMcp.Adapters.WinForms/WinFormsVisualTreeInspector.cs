@@ -125,6 +125,12 @@ public sealed class WinFormsVisualTreeInspector : IUiTreeInspector
         var children = new List<UiElementNode>();
         for (var index = 0; index < element.Controls.Count; index++)
         {
+            if (budget.RemainingNodes <= 0)
+            {
+                truncated = true;
+                break;
+            }
+
             var copied = CopyBounded(
                 root,
                 element.Controls[index],
